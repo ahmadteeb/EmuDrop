@@ -1,0 +1,254 @@
+[
+    {
+        "id": "PSP",
+        "name": "PSP",
+        "image": "PSP.png",
+        "games": [],
+        "page": "/roms/psp/"
+    },
+    {
+        "id": "SFC",
+        "name": "Super Nintendo",
+        "image": "SFC.png",
+        "games": [],
+        "page": "/roms/snes/"
+    },
+    {
+        "id": "NDS",
+        "name": "Nintendo DS",
+        "image": "NDS.png",
+        "games": [],
+        "page": "/roms/nds/"
+    },
+    {
+        "id": "GBA",
+        "name": "Game Boy Advance",
+        "image": "GBA.png",
+        "games": [],
+        "page": "/roms/gba/"
+    },
+    {
+        "id": "N64",
+        "name": "Nintendo 64",
+        "image": "N64.png",
+        "games": [],
+        "page": "/roms/n64/"
+    },
+    {
+        "id": "MAME",
+        "name": "MAME",
+        "image": "MAME.png",
+        "games": [],
+        "page": "/roms/mame/"
+    },
+    {
+        "id": "PS",
+        "name": "Playstation",
+        "image": "PS.png",
+        "games": [],
+        "page": "/roms/psx/"
+    },
+    {
+        "id": "MD",
+        "name": "Sega Genesis",
+        "image": "MD.png",
+        "games": [],
+        "page": "/roms/sega-genesis/"
+    },
+    {
+        "id": "GBC",
+        "name": "Game Boy Color",
+        "image": "GBC.png",
+        "games": [],
+        "page": "/roms/gbc/"
+    },
+    {
+        "id": "DC",
+        "name": "Dreamcast",
+        "image": "DC.png",
+        "games": [],
+        "page": "/roms/sega-dreamcast/"
+    },
+    {
+        "id": "GB",
+        "name": "Game Boy",
+        "image": "GB.png",
+        "games": [],
+        "page": "/roms/gb/"
+    },
+    {
+        "id": "SEGACD",
+        "name": "Sega CD",
+        "image": "SEGACD.png",
+        "games": [],
+        "page": "/roms/sega-cd/"
+    },
+    {
+        "id": "NEOGEO",
+        "name": "Neo Geo",
+        "image": "NEOGEO.png",
+        "games": [],
+        "page": "/roms/new-geo/"
+    },
+    {
+        "id": "ATARI2600",
+        "name": "Atari 2600",
+        "image": "ATARI2600.png",
+        "games": [],
+        "page": "/roms/atari-2600/"
+    },
+    {
+        "id": "GG",
+        "name": "Sega Game Gear",
+        "image": "GG.png",
+        "games": [],
+        "page": "/roms/sega-game-gear/"
+    },
+    {
+        "id": "AMIGA",
+        "name": "Amiga",
+        "image": "AMIGA.png",
+        "games": [],
+        "page": "/roms/amiga/"
+    },
+    {
+        "id": "MS",
+        "name": "Sega Master System",
+        "image": "MS.png",
+        "games": [],
+        "page": "/roms/sega-master-system/"
+    },
+    {
+        "id": "NAOMI",
+        "name": "Sega NAOMI",
+        "image": "NAOMI.png",
+        "games": [],
+        "page": "/roms/sega-naomi/"
+    },
+    {
+        "id": "DOS",
+        "name": "MS DOS",
+        "image": "DOS.png",
+        "games": [],
+        "page": "/roms/dos/"
+    },
+    {
+        "id": "ZXS",
+        "name": "ZX Spectrum",
+        "image": "ZXS.png",
+        "games": [],
+        "page": "/roms/zx-spectrum/"
+    },
+    {
+        "id": "CPS2",
+        "name": "Capcom CP System 2",
+        "image": "CPS2.png",
+        "games": [],
+        "page": "/roms/cps2/"
+    },
+    {
+        "id": "PCE",
+        "name": "NEC TurboGrafx-16",
+        "image": "PCE.png",
+        "games": [],
+        "page": "/roms/turbografx16/"
+    },
+    {
+        "id": "CPS1",
+        "name": "Capcom CP System 1",
+        "image": "CPS1.png",
+        "games": [],
+        "page": "/roms/cps1/"
+    },
+    {
+        "id": "SCUMMVM",
+        "name": "ScummVM",
+        "image": "SCUMMVM.png",
+        "games": [],
+        "page": "/roms/scummvm/"
+    },
+    {
+        "id": "ATARI5200",
+        "name": "Atari 5200",
+        "image": "ATARI5200.png",
+        "games": [],
+        "page": "/roms/atari-5200/"
+    },
+    {
+        "id": "VB",
+        "name": "Virtual Boy",
+        "image": "VB.png",
+        "games": [],
+        "page": "/roms/virtual-boy/"
+    },
+    {
+        "id": "LYNX",
+        "name": "Atari Lynx",
+        "image": "LYNX.png",
+        "games": [],
+        "page": "/roms/atari-lynx/"
+    },
+    {
+        "id": "ATARI7800",
+        "name": "Atari 7800",
+        "image": "ATARI7800.png",
+        "games": [],
+        "page": "/roms/atari-7800/"
+    },
+    {
+        "id": "ATARIST",
+        "name": "Atari ST",
+        "image": "ATARIST.png",
+        "games": [],
+        "page": "/roms/atari-st/"
+    },
+    {
+        "id": "NGP",
+        "name": "Neo Geo Pocket",
+        "image": "NGP.png",
+        "games": [],
+        "page": "/roms/neo-geo-pocket/"
+    },
+    {
+        "id": "X68000",
+        "name": "X68000",
+        "image": "X68000.png",
+        "games": [],
+        "page": "/roms/sharp-x68000/"
+    },
+    {
+        "id": "PANASONIC",
+        "name": "3DO",
+        "image": "PANASONIC.png",
+        "games": [],
+        "page": "/roms/3do/"
+    },
+    {
+        "id": "CPS3",
+        "name": "Capcom CP System 3",
+        "image": "CPS3.png",
+        "games": [],
+        "page": "/roms/cps3/"
+    },
+    {
+        "id": "PCFX",
+        "name": "PC Engine SuperGrafx",
+        "image": "PCFX.png",
+        "games": [],
+        "page": "/roms/pc-fx/"
+    },
+    {
+        "id": "WS",
+        "name": "WonderSwan",
+        "image": "WS.png",
+        "games": [],
+        "page": "/roms/wonderswan/"
+    },
+    {
+        "id": "WSC",
+        "name": "WonderSwan",
+        "image": "WSC.png",
+        "games": [],
+        "page": "/roms/wonderswan-color/"
+    }
+]

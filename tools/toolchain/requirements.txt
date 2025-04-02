@@ -1,0 +1,11 @@
+certifi
+charset-normalizer
+idna
+pillow
+PySDL2
+pysdl2-dll
+requests
+urllib3
+patool
+py7zr
+pyinstaller

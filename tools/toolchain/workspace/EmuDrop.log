@@ -1,0 +1,11 @@
+2025-04-02 23:22:14,494 - utils.logger - INFO - SDL subsystems initialized successfully
+2025-04-02 23:22:14,521 - utils.logger - INFO - Window created successfully
+2025-04-02 23:22:14,521 - utils.logger - INFO - Created renderer: software
+2025-04-02 23:22:14,522 - utils.logger - INFO - Loading screen font loaded: c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\fonts\arial.ttf
+2025-04-02 23:22:14,523 - utils.logger - INFO - Loaded font: c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\fonts\arial.ttf
+2025-04-02 23:22:14,523 - utils.logger - INFO - Number of joysticks detected: 0
+2025-04-02 23:22:20,542 - utils.logger - INFO - Started downloading: 007 - From Russia with Love (Asia)
+2025-04-02 23:22:36,809 - utils.logger - INFO - Download complete: 007 - From Russia with Love (Asia)
+2025-04-02 23:22:57,154 - utils.logger - INFO - Successfully scraped
+2025-04-02 23:23:09,007 - utils.logger - INFO - Starting cleanup...
+2025-04-02 23:23:09,023 - utils.logger - INFO - Cleanup completed successfully
