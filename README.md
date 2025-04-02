@@ -14,6 +14,7 @@ A modern, user-friendly game ROM downloader application built with Python and SD
 - 📺 Game Preview: View game information and images
 - 🎯 Progress Tracking: Visual feedback for downloads
 - 💾 Multi-format Support: Handles various ROM formats and compression
+- 🔄 Auto Updates: Built-in OTA updates for seamless app maintenance
 
 ## Requirements
 
