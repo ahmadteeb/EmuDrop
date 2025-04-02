@@ -16,8 +16,8 @@ class Config:
     BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
     DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")  # For temporary downloads
-    ROMS_DIR = '/mnt/SDCARD/Roms'
-    IMGS_DIR = '/mnt/SDCARD/Imgs'
+    ROMS_DIR = '/mnt/SDCARD/Roms/'
+    IMGS_DIR = '/mnt/SDCARD/Imgs/'
     
     # Asset subdirectories
     IMAGES_DIR = os.path.join(ASSETS_DIR, 'images')

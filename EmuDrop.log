@@ -1,0 +1,18 @@
+2025-04-03 00:44:14,747 - utils.logger - INFO - SDL subsystems initialized successfully
+2025-04-03 00:44:14,773 - utils.logger - INFO - Window created successfully
+2025-04-03 00:44:14,774 - utils.logger - INFO - Created renderer: software
+2025-04-03 00:44:14,783 - utils.logger - INFO - Loading screen font loaded: c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\fonts\arial.ttf
+2025-04-03 00:44:14,784 - utils.logger - INFO - Loaded font: c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\fonts\arial.ttf
+2025-04-03 00:44:14,784 - utils.logger - INFO - Number of joysticks detected: 0
+2025-04-03 00:44:27,883 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/007-from-russia-with-love-psp-thumb-asia.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\118a769a9df6378f953f0fd3888282e5.jpg
+2025-04-03 00:44:33,243 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/300-march-to-glory-psp-thumb-europe.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\abf9158bafe0013fb31c2c20297f0298.jpg
+2025-04-03 00:44:34,222 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/burnout-legends-psp-thumb-v2.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\ab69deefddeae14241105f8fbc2221c0.jpg
+2025-04-03 00:44:35,273 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/gran-turismo-psp-thumb.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\e53b3ab9c7e1540a50ee7358916e3211.jpg
+2025-04-03 00:44:38,658 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/grand-theft-auto-chinatown-wars-psp-thumb.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\0582f530cc665d4d5fe177c17d653475.jpg
+2025-04-03 00:44:41,025 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/grand-theft-auto-liberty-city-stories-psp-thumb-europe-en-fr-de-es-it-v1.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\2a27b1eeb068eaeb56222d59f9b61c95.jpg
+2025-04-03 00:44:44,348 - utils.logger - INFO - Started downloading: Grand Theft Auto - Liberty City Stories (Europe) (En,Fr,De,Es,It) (v1.05)
+2025-04-03 00:45:11,001 - utils.logger - INFO - Download complete: Grand Theft Auto - Liberty City Stories (Europe) (En,Fr,De,Es,It) (v1.05)
+2025-04-03 00:45:18,606 - utils.logger - INFO - Successfully scraped
+2025-04-03 00:45:42,708 - utils.image_cache - INFO - Cached image from https://www.consoleroms.com/img/roms/thumbs/grand-theft-auto-liberty-city-stories-psp-thumb-usa-v1-05.jpg to c:\Users\ahmad\Desktop\Roms Installer\App\src\assets\images\cache\6902f1832b0bb1fbf7c5a5ec2bbd41e1.jpg
+2025-04-03 00:45:45,276 - utils.logger - INFO - Starting cleanup...
+2025-04-03 00:45:45,296 - utils.logger - INFO - Cleanup completed successfully
