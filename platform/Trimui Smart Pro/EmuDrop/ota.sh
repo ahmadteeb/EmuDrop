@@ -46,7 +46,7 @@ download_latest_release() {
 # Function to clean local files, except ZIP and ota.sh
 clean_local_files() {
     echo "Cleaning local files (except ZIP, ota.sh, and launch.sh)..."
-    find . -mindepth 1 ! -name "latest_release.zip" ! -name "ota.sh" ! -name "launch.sh" ! -name "config.json" ! -name "icon.png" -exec rm -rf {} +
+    find rm -r * 
 }
 
 # Function to extract the new version
