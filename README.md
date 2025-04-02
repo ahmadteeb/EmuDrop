@@ -9,7 +9,7 @@ A modern, user-friendly game ROM downloader application developed for Trimui Sma
 - 📱 Modern UI: Clean and intuitive interface built with SDL2
 - 🗂️ Category Management: Browse games by platform/category
 - ⬇️ Download Management: Track and manage game downloads
-- 🖼️ Rom Imgs Scrapping: Downloading the game 2d art box cover
+- 🖼️ Rom Imgs Scrapping: Built-in image cover scrapper
 - 🔍 Search Functionality: Find games quickly
 - 📺 Game Preview: View game information and images
 - 🎯 Progress Tracking: Visual feedback for downloads
