@@ -3,3 +3,4 @@ venv
 download
 Roms
 Imgs
+tools/toolchain/*
