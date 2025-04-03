@@ -1,6 +1,6 @@
 # EmuDrop
 
-A modern, user-friendly game ROM downloader application developed for Trimui Smart Pro built with Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
+A modern, user-friendly game ROM downloader application developed for Trimui Smart Pro using Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
 
 ## Features
 
