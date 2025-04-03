@@ -81,7 +81,6 @@ python main.py
 - `platform/`: Platform-specific implementations
 - `tools/toolchain`: Toolchain for Trimui Smart Pro using docker image
 - `tools/roms scrapper`: Scrapping the Game Roms links form https://www.consoleroms.com.
-- `components/`: Reusable UI components
 - `assets/`: Images, fonts, and other resources
 
 ## Development
