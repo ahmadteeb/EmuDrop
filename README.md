@@ -80,7 +80,7 @@ python main.py
 - `data/`: Data management and storage
 - `platform/`: Platform-specific implementations
 - `tools/toolchain`: Toolchain for Trimui Smart Pro using docker image
-- `tools/roms scrapper`: Scrapping the Game Roms links form https://www.consoleroms.com.
+- `tools/roms scrapper`: Scrapping the Game Roms links from https://www.consoleroms.com.
 - `assets/`: Images, fonts, and other resources
 
 ## Development
