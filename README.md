@@ -61,8 +61,8 @@ python main.py
 
 2. Navigation:
    - Use arrow keys or controller D-pad to navigate menus
-   - Press Enter/Start to select
-   - Press Esc/Back to return to previous menu
+   - Press Enter/A to select
+   - Press Esc/B to return to previous menu
    - Use the on-screen keyboard for search
 
 3. Downloading Games:
