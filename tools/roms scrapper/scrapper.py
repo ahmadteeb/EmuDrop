@@ -60,7 +60,6 @@ def extract_pages(category_url):
                 # Save catalog after each page
                 with open('catalog.json', 'w') as f:
                     json.dump(catalog, f, indent=2)
-                break
 
     return games
 
