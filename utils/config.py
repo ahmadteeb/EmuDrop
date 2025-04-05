@@ -4,6 +4,8 @@ import sys
 class Config:
     """Application configuration settings"""
     
+    IS_DEVELOPMENT = os.path.splitext(sys.argv[0])[1] == ".py"
+    
     # Application metadata
     APP_NAME = "EmuDrop" 
     
@@ -16,10 +18,13 @@ class Config:
     BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
     DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")  # For temporary downloads
-    ROMS_DIR = '/mnt/SDCARD/Roms/'
-    IMGS_DIR = '/mnt/SDCARD/Imgs/'
     
-    # Asset subdirectories
+    ROMS_DIR = 'Roms/' if IS_DEVELOPMENT else '/mnt/SDCARD/Roms/' 
+    IMGS_DIR = 'Imgs/' if IS_DEVELOPMENT else '/mnt/SDCARD/Imgs/'  
+    EXECUTABLE_7z_DIR = r"C:\Program Files\7-Zip" if IS_DEVELOPMENT else os.path.join(ASSETS_DIR, 'executables')
+    
+    print(IS_DEVELOPMENT)
+    
     IMAGES_DIR = os.path.join(ASSETS_DIR, 'images')
     IMAGES_CONTROLS_DIR = os.path.join(IMAGES_DIR, 'controls')
     IMAGES_CONSOLES_DIR = os.path.join(IMAGES_DIR, 'consoles')

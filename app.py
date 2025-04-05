@@ -761,7 +761,7 @@ class GameDownloaderApp:
             download_manager = DownloadManager(
                 id=game.get('category_id', CategoryManager.get_categories()[self.selected_category]['id']),
                 game_name=game['name'],
-                game_url=game.get('game_url', '')
+                game_url=game.get('game_url', ''),
             )
             
             # Get game size
@@ -784,9 +784,10 @@ class GameDownloaderApp:
             download_manager = DownloadManager(
                 id=CategoryManager.get_categories()[self.selected_category]['id'],
                 game_name=game['name'],
-                game_url=game.get('game_url', '')
+                game_url=game.get('game_url', ''),
+                image_url=game.get('image_url', ''),
+                isExtractable=CategoryManager.get_categories()[self.selected_category]['isExtractable']
             )
-            
             # Set pre-fetched size if available
             if 'size' in game:
                 download_manager.total_size = game['size']

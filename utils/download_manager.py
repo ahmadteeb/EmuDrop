@@ -2,7 +2,7 @@ import os
 import requests
 import threading
 import time
-import patoolib, zipfile, py7zr
+import subprocess
 from utils.config import Config
 from utils.logger import logger
 from utils.screenscrapper import ScreenScraper
@@ -10,7 +10,7 @@ from utils.screenscrapper import ScreenScraper
 class DownloadManager:
     """Manages game downloads with progress tracking and cancellation support"""
 
-    def __init__(self, id, game_name, game_url):
+    def __init__(self, id, game_name, game_url, image_url=None, isExtractable=False):
         """
         Initialize download manager for a specific game
         
@@ -20,6 +20,8 @@ class DownloadManager:
         self.id = id
         self.game_name = game_name
         self.game_url = game_url
+        self.image_url = image_url
+        self.isExtractable = isExtractable
         
         # Download state
         self.download_thread = None
@@ -94,98 +96,59 @@ class DownloadManager:
             if not os.path.exists(extract_to):
                 os.makedirs(extract_to)
                 
-            if file.endswith(".zip"):
-                self._extract_zip(file, extract_to)
-            elif file.endswith(".7z"):
-                self._extract_7z(file, extract_to)
-            elif file.endswith(".rar"):
-                self._extract_rar(file, extract_to)
-            else:
-                raise ValueError(f"Unsupported archive format: {file}")
-                
-            # Clean up the archive file after successful extraction
-            os.remove(file)
+            subprocess.run([f"{Config.EXECUTABLE_7z_DIR}/7z", "x", file, f"-o{extract_to}"])
             
         except Exception as e:
             logger.error(f"Extraction error for {file}: {e}")
             raise
             
-    def _extract_rar(self, file, extract_to):
-        """Extract RAR archive.
-        
-        Args:
-            file (str): Path to the RAR file
-            extract_to (str): Directory to extract files to
-        """
-        patoolib.extract_archive(file, outdir=extract_to)
-        
-    def _extract_zip(self, file, extract_to):
-        """Extract ZIP archive.
-        
-        Args:
-            file (str): Path to the ZIP file
-            extract_to (str): Directory to extract files to
-        """
-        with zipfile.ZipFile(file, 'r') as zip_ref:
-            zip_ref.extractall(extract_to)
-                
-    def _extract_7z(self, file, extract_to):
-        """Extract 7Z archive.
-        
-        Args:
-            file (str): Path to the 7Z file
-            extract_to (str): Directory to extract files to
-        """
-        with py7zr.SevenZipFile(file, 'r') as sevenz_ref:
-            sevenz_ref.extractall(extract_to)
     
     def move_and_extract_game(self, folder):
         """Move and extract game files to the ROMs directory"""
+        def scan_folder(subfolder):
+            # Handle nested folders
+            files = os.listdir(subfolder)
+            if files and os.path.isdir(os.path.join(subfolder, files[0])):
+                subfolder = os.path.join(subfolder, files[0])
+                
+            # Check for archive files
+            archive_files = [file for file in os.listdir(subfolder) if any(ext in file.lower() for ext in ['.zip', '.rar', '.7z'])]
+            if archive_files:
+                if not self.isExtractable:
+                    return subfolder, archive_files
+                
+                else:
+                    tmp_path = os.path.join(subfolder, 'tmp')
+                    os.makedirs(tmp_path, exist_ok=True)
+                    self.extractor(os.path.join(subfolder, archive_files[0]), tmp_path)
+                    return scan_folder(tmp_path)
+
+            else:
+                return subfolder, os.listdir(subfolder)
+            
         try:
             self.is_extracting = True
-            
-            # Create ROM directory
-            rom_path = os.path.join(Config.ROMS_DIR, self.id) # for development only
+            rom_path = os.path.join(Config.ROMS_DIR, self.id)
             os.makedirs(rom_path, exist_ok=True)
             
-            # Handle nested folders
-            if os.path.exists(folder):
-                files = os.listdir(folder)
-                if files and os.path.isdir(os.path.join(folder, files[0])):
-                    folder = os.path.join(folder, files[0])
-            
-            # Check for archive files
-            archive_files = [f for f in os.listdir(folder) 
-                           if any(ext in f.lower() for ext in ['.zip', '.rar', '.7z'])]
-            
-            if archive_files:
-                # Extract archive
-                tmp_path = os.path.join(folder, 'tmp')
-                os.makedirs(tmp_path, exist_ok=True)
-                self.extractor(os.path.join(folder, archive_files[0]), tmp_path)
-                self.move_and_extract_game(tmp_path)
-            else:
-                # Move files
-                for file in os.listdir(folder):
-                    if '.nfo' not in file:
-                        name, ext = os.path.splitext(file)
-                        new_name = self.game_name + ext
-                        os.rename(os.path.join(folder, file), os.path.join(rom_path, new_name))
-                        scrapper = ScreenScraper()
-                        success, message = scrapper.scrape_rom(new_name, self.id)
-                        if success:
-                            logger.info(message)
-                        else:
-                            logger.error(message)
-                        
-            self.delete_folder(folder)
-            self.is_extracting = False
-            return True
-            
+            files_path, files = scan_folder(folder)               
+
+            for file in files:
+                if '.nfo' not in file:
+                    name, ext = os.path.splitext(file)
+                    new_name = self.game_name + ext
+                    os.rename(os.path.join(files_path, file), os.path.join(rom_path, new_name))
+            logger.info(f"{self.game_name} has been extracted successfully")
+            scrapper = ScreenScraper()
+            message = scrapper.scrape_rom(self.image_url ,self.game_name, self.id)
+            logger.info(message)
+          
         except Exception as e:
             logger.error(f"Error moving and extracting game: {e}")
+            
+        finally:
+            self.delete_folder(folder)
             self.is_extracting = False
-            return False
 
     def start_download(self):
         """

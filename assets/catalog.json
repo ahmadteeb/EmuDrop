@@ -3,6 +3,7 @@
     "id": "PSP",
     "name": "PSP",
     "image": "PSP.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "God Of War - Chains Of Olympus",
@@ -3865,6 +3866,7 @@
     "id": "SFC",
     "name": "Super Nintendo",
     "image": "SFC.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Super Mario World",
@@ -10937,6 +10939,7 @@
     "id": "NDS",
     "name": "Nintendo DS",
     "image": "NDS.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Pokemon HeartGold",
@@ -21154,6 +21157,7 @@
     "id": "GBA",
     "name": "Game Boy Advance",
     "image": "GBA.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Pokemon Emerald",
@@ -30786,6 +30790,7 @@
     "id": "N64",
     "name": "Nintendo 64",
     "image": "N64.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Super Mario 64",
@@ -35158,6 +35163,7 @@
     "id": "MAME",
     "name": "MAME",
     "image": "MAME.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Marvel VS Capcom 2",
@@ -41190,6 +41196,7 @@
     "id": "PS",
     "name": "Playstation",
     "image": "PS.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Crash Bandicoot",
@@ -42592,6 +42599,7 @@
     "id": "MD",
     "name": "Sega Genesis",
     "image": "MD.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Sonic The Hedgehog",
@@ -47719,6 +47727,7 @@
     "id": "GBC",
     "name": "Game Boy Color",
     "image": "GBC.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Pokemon - Yellow Version",
@@ -52111,6 +52120,7 @@
     "id": "DC",
     "name": "Dreamcast",
     "image": "DC.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Sonic Adventure",
@@ -52633,6 +52643,7 @@
     "id": "GB",
     "name": "Game Boy",
     "image": "GB.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Super Mario Land",
@@ -55510,6 +55521,7 @@
     "id": "SEGACD",
     "name": "Sega CD",
     "image": "SEGACD.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Sonic CD",
@@ -56027,6 +56039,7 @@
     "id": "NEOGEO",
     "name": "Neo Geo",
     "image": "NEOGEO.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Metal Slug",
@@ -57064,6 +57077,7 @@
     "id": "ATARI2600",
     "name": "Atari 2600",
     "image": "ATARI2600.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Space Invaders",
@@ -59271,6 +59285,7 @@
     "id": "GG",
     "name": "Sega Game Gear",
     "image": "GG.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Sonic the Hedgehog 2",
@@ -60908,6 +60923,7 @@
     "id": "AMIGA",
     "name": "Amiga",
     "image": "AMIGA.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Lotus Esprit Turbo Challenge",
@@ -62300,6 +62316,7 @@
     "id": "MS",
     "name": "Sega Master System",
     "image": "MS.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Sonic the Hedgehog",
@@ -62807,6 +62824,7 @@
     "id": "NAOMI",
     "name": "Sega NAOMI",
     "image": "NAOMI.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Capcom vs Snk 2",
@@ -63169,6 +63187,7 @@
     "id": "DOS",
     "name": "MS DOS",
     "image": "DOS.png",
+    "isExtractable": false,
     "games": [
       {
         "name": "Doom",
@@ -63426,6 +63445,7 @@
     "id": "ZXS",
     "name": "ZX Spectrum",
     "image": "ZXS.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Jetpac",
@@ -63933,6 +63953,7 @@
     "id": "CPS2",
     "name": "Capcom CP System 2",
     "image": "CPS2.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "X-MEN VS. STREET FIGHTER (EUROPE)",
@@ -64440,6 +64461,7 @@
     "id": "PCE",
     "name": "NEC TurboGrafx-16",
     "image": "PCE.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Street Fighter 2 Champion Edition",
@@ -64947,6 +64969,7 @@
     "id": "CPS1",
     "name": "Capcom CP System 1",
     "image": "CPS1.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Cadillacs And Dinosaurs",
@@ -65454,6 +65477,7 @@
     "id": "SCUMMVM",
     "name": "ScummVM",
     "image": "SCUMMVM.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Day of the Tentacle",
@@ -65541,6 +65565,7 @@
     "id": "ATARI5200",
     "name": "Atari 5200",
     "image": "ATARI5200.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Pac Man (1982) (Atari)",
@@ -66013,6 +66038,7 @@
     "id": "VB",
     "name": "Virtual Boy",
     "image": "VB.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Virtual Boy Wario Land",
@@ -66105,6 +66131,7 @@
     "id": "LYNX",
     "name": "Atari Lynx",
     "image": "LYNX.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Rygar - Legendary Warrior",
@@ -66537,6 +66564,7 @@
     "id": "ATARI7800",
     "name": "Atari 7800",
     "image": "ATARI7800.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Pole Position 2",
@@ -66839,6 +66867,7 @@
     "id": "ATARIST",
     "name": "Atari ST",
     "image": "ATARIST.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Indiana Jones And The Temple Of Doom",
@@ -67356,6 +67385,7 @@
     "id": "NGP",
     "name": "Neo Geo Pocket",
     "image": "NGP.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Sonic the Hedgehog - Pocket Adventure",
@@ -67748,6 +67778,7 @@
     "id": "X68000",
     "name": "X68000",
     "image": "X68000.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "AKUMAJOU DRACULA (1993)(KONAMI)(DISK 1 OF 2)",
@@ -68270,6 +68301,7 @@
     "id": "PANASONIC",
     "name": "3DO",
     "image": "PANASONIC.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Need For Speed",
@@ -68357,6 +68389,7 @@
     "id": "CPS3",
     "name": "Capcom CP System 3",
     "image": "CPS3.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Street Fighter III 3rd Strike - Fight for the Future",
@@ -68394,6 +68427,7 @@
     "id": "PCFX",
     "name": "PC Engine SuperGrafx",
     "image": "PCFX.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Lunatic Dawn",
@@ -68501,6 +68535,7 @@
     "id": "WS",
     "name": "WonderSwan",
     "image": "WS.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Digimon - Digital Monsters (A) [M]",
@@ -68513,6 +68548,7 @@
     "id": "WSC",
     "name": "WonderSwan",
     "image": "WSC.png",
+    "isExtractable": true,
     "games": [
       {
         "name": "Dark Eyes - Battle Gate",

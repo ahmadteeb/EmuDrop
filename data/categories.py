@@ -35,7 +35,8 @@ class CategoryManager:
             {
                 "id": category['id'], 
                 "name": category['name'], 
-                "image": category['image']
+                "image": category['image'],
+                "isExtractable": category['isExtractable']
             } for category in cls._categories_data
         ]
 
