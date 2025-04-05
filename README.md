@@ -1,6 +1,6 @@
 # EmuDrop
 
-A modern, user-friendly game ROM downloader application built with Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
+A modern, user-friendly game ROM downloader application mainly for Trimui Smart Pro developed using Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
 
 ## Features
 
@@ -61,9 +61,11 @@ python main.py
 
 2. Navigation:
    - Use arrow keys or controller D-pad to navigate menus
-   - Press Enter/Start to select
-   - Press Esc/Back to return to previous menu
-   - Use the on-screen keyboard for search
+   - Press A to select
+   - Press B to return to previous menu
+   - Press Y to show on-screen keyboard for search
+   - Press X to show the downloads status
+   - Press L/R for page navigation
 
 3. Downloading Games:
    - Browse categories or search for specific games
@@ -81,7 +83,6 @@ python main.py
 - `platform/`: Platform-specific implementations
 - `tools/toolchain`: Toolchain for Trimui Smart Pro using docker image
 - `tools/roms scrapper`: Scrapping the Game Roms links form https://www.consoleroms.com.
-- `components/`: Reusable UI components
 - `assets/`: Images, fonts, and other resources
 
 ## Development
