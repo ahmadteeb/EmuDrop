@@ -141,11 +141,14 @@ class DownloadManager:
                     name, ext = os.path.splitext(file)
                     new_name = self.game_name + ext
                     os.rename(os.path.join(files_path, file), os.path.join(rom_path, new_name))
+                    
+            self.is_extracting = False
             logger.info(f"{self.game_name} has been extracted successfully")
             
             scrapper = ScreenScraper()
             self.is_scrapping = True
             message = scrapper.scrape_rom(self.image_url, self.game_name, self.id)
+            self.is_scrapping = False
             logger.info(message)
 
             
@@ -154,8 +157,6 @@ class DownloadManager:
             
         finally:
             self.delete_folder(folder)
-            self.is_extracting = False
-            self.is_scrapping = False
 
     def start_download(self):
         """
@@ -257,23 +258,6 @@ class DownloadManager:
             # Remove partial download file if exists
             if os.path.exists(self.download_path):
                 os.remove(self.download_path)
-
-    def get_status(self):
-        """
-        Get current download status
-        
-        :return: Dictionary with download status details
-        """
-        return {
-            'is_downloading': self.is_downloading,
-            'is_extracting': self.is_extracting,
-            'is_scrapping': self.is_scrapping,
-            'progress': round(self.download_progress, 2),
-            'total_size': self.total_size,
-            'current_size': self.current_size,
-            'download_speed': self.download_speed,
-            'game_name': self.game_name
-        }
 
     @staticmethod
     def format_size(size_bytes):

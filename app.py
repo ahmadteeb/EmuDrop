@@ -26,6 +26,7 @@ from utils.logger import logger
 from utils.texture_manager import TextureManager
 from utils.download_manager import DownloadManager
 from utils.theme import Theme
+from utils.alert_manager import AlertManager
 from ui.loading_screen import LoadingScreen
 from ui.confirmation_dialog import ConfirmationDialog
 from ui.download_view import DownloadView
@@ -115,7 +116,6 @@ class GameDownloaderApp:
             self.selected_download: Optional[str] = None  # Track selected download in download view
             
             # Initialize alert manager
-            from utils.alert_manager import AlertManager
             AlertManager.get_instance().set_app(self)
             
             # Initialize joystick if available
@@ -448,6 +448,8 @@ class GameDownloaderApp:
         elif button == Config.CONTROLLER_BUTTON_RIGHT:
             return self._handle_input_event(sdl2.SDLK_RIGHT)
         
+        return True
+        
     def _handle_physical_keyboard(self, key):
         """Handle physical keyboard inputs
         
@@ -468,14 +470,16 @@ class GameDownloaderApp:
         Returns:
             bool: False if application should exit, True otherwise.
         """
-        from utils.alert_manager import AlertManager
         alert_manager = AlertManager.get_instance()
         
+        # Handle alert dismissal first
         if alert_manager.is_showing():
-            if key == sdl2.SDLK_RETURN or key == sdl2.SDLK_BACKSPACE:
+            if key in [sdl2.SDLK_RETURN, sdl2.SDLK_BACKSPACE, Config.CONTROLLER_BUTTON_A, Config.CONTROLLER_BUTTON_B]:
                 alert_manager.hide_alert()
             return True
-        elif self.view_state.showing_confirmation:
+        
+        # Handle other input states
+        if self.view_state.showing_confirmation:
             return self._handle_confirmation_input(key)
         elif self.view_state.showing_keyboard and self.view_state.mode == 'games':
             return self._handle_onscreen_keyboard_input(key)
@@ -868,14 +872,10 @@ class GameDownloaderApp:
             if game['name'] in self.active_downloads:
                 logger.warning(f"Game {game['name']} is already downloading")
                 
-
-                # To show an alert with additional information
-                self.show_alert(
-                    "Download",
-                    additional_info=[
-                        (game['name'], Theme.TEXT_PRIMARY),
-                        ("is already downloading!", Theme.WARNING),
-                    ]
+                # Show alert using AlertManager
+                AlertManager.get_instance().show_warning(
+                    "Download in Progress",
+                    f"{game['name']} is already downloading!"
                 )
                 return
             
@@ -969,7 +969,7 @@ class GameDownloaderApp:
         """Render the current application state"""
         try:
             # Clear the screen
-            sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.BG_DARK, 255)
+            sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.BG_DARK)
             sdl2.SDL_RenderClear(self.renderer)
 
             if self.view_state.mode == 'categories':
@@ -1066,11 +1066,9 @@ class GameDownloaderApp:
                     additional_info=additional_info
                 )
 
-            # Get alert state from AlertManager
-            from utils.alert_manager import AlertManager
+            # Get alert state from AlertManager and render if active
             alert_manager = AlertManager.get_instance()
             
-            # Render alert dialog if active
             if alert_manager.is_showing():
                 self.alert_dialog.render(
                     message=alert_manager.get_message(),
@@ -1178,8 +1176,3 @@ class GameDownloaderApp:
         except Exception as e:
             logger.error(f"Error during cleanup: {str(e)}", exc_info=True)
             # Don't re-raise as we're already cleaning up 
-
-    def show_alert(self, message: str, additional_info: Optional[List[Tuple[str, Tuple[int, int, int, int]]]] = None):
-        """Show an alert dialog with the given message"""
-        from utils.alert_manager import AlertManager
-        AlertManager.get_instance().show_alert(message, additional_info) 
