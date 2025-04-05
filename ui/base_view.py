@@ -21,6 +21,20 @@ class BaseView:
         self.font = font
         self.texture_manager = texture_manager
         
+    def render_title(self, title: str) -> None:
+        """Render a title at the top of the view
+        
+        Args:
+            title: The title text to render
+        """
+        self.render_text(
+            title,
+            Config.SCREEN_WIDTH // 2,
+            40,  # Position from top
+            color=Theme.TEXT_PRIMARY,
+            center=True
+        )
+        
     def render_background(self, simplified=False) -> None:
         """Render a modern gradient background with subtle animation
         

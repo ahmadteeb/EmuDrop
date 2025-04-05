@@ -1,6 +1,6 @@
 # EmuDrop
 
-A modern, user-friendly game ROM downloader application developed for Trimui Smart Pro using Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
+A modern, user-friendly game ROM downloader application built with Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
 
 ## Features
 
@@ -9,7 +9,7 @@ A modern, user-friendly game ROM downloader application developed for Trimui Sma
 - 📱 Modern UI: Clean and intuitive interface built with SDL2
 - 🗂️ Category Management: Browse games by platform/category
 - ⬇️ Download Management: Track and manage game downloads
-- 🖼️ Rom Imgs Scrapping: Built-in image cover scrapper
+- 🖼️ Rom Imgs Scrapping: Downloading the game 2d art box cover
 - 🔍 Search Functionality: Find games quickly
 - 📺 Game Preview: View game information and images
 - 🎯 Progress Tracking: Visual feedback for downloads
@@ -45,7 +45,7 @@ sudo make shell
 ```bash
 pyinstaller --onefile --noconsole --name EmuDrop main.py
 ```
-4. Place the EmuDrop file from dist/ directory platform/Trimui Smart Pro/EmuDrop
+4. Place the EmuDrop files from dist/ directory platform/Trimui Smart Pro/EmuDrop
 ```bash
 cp dist/EmuDrop/ platform/Trimui Smart Pro/EmuDrop
 ```
@@ -61,8 +61,8 @@ python main.py
 
 2. Navigation:
    - Use arrow keys or controller D-pad to navigate menus
-   - Press Enter/A to select
-   - Press Esc/B to return to previous menu
+   - Press Enter/Start to select
+   - Press Esc/Back to return to previous menu
    - Use the on-screen keyboard for search
 
 3. Downloading Games:
@@ -80,7 +80,8 @@ python main.py
 - `data/`: Data management and storage
 - `platform/`: Platform-specific implementations
 - `tools/toolchain`: Toolchain for Trimui Smart Pro using docker image
-- `tools/roms scrapper`: Scrapping the Game Roms links from https://www.consoleroms.com.
+- `tools/roms scrapper`: Scrapping the Game Roms links form https://www.consoleroms.com.
+- `components/`: Reusable UI components
 - `assets/`: Images, fonts, and other resources
 
 ## Development

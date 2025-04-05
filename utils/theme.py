@@ -9,6 +9,7 @@ class Theme:
     CARD_BG = (28, 28, 36)  # Card background
     CARD_SELECTED = (38, 38, 48)  # Selected card background
     CARD_BORDER = (48, 48, 64)  # Card border
+    SELECTION_BG = (45, 45, 60)  # Selected item background
     
     # Text colors
     TEXT_PRIMARY = (255, 255, 255)  # Primary text color
@@ -17,6 +18,7 @@ class Theme:
     TEXT_TITLE = (230, 230, 255)  # Title text color
     TEXT_PLACEHOLDER = (100, 100, 120)  # Placeholder text color
     TEXT_DISABLED = (150, 150, 150)  # Disabled text color
+    TEXT_HIGHLIGHT = (255, 200, 100)  # Highlighted text color
     
     # UI effects
     SHADOW_COLOR = (0, 0, 0, 60)  # Shadow with alpha

@@ -3,6 +3,4 @@ PySDL2
 pysdl2-dll
 requests
 urllib3
-patool
-pyunpack
 pyinstaller

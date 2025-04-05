@@ -13,6 +13,7 @@ class Config:
     SCREEN_WIDTH = 1280
     SCREEN_HEIGHT = 720
     FPS_LIMIT_LOW_POWER = 30  # Lower FPS limit for devices like Trimui Smart Pro
+    FRAME_TIME = int(1000 / FPS_LIMIT_LOW_POWER)  # Frame time in milliseconds (33.33ms for 30 FPS)
 
     # Directory paths
     BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -23,7 +24,6 @@ class Config:
     IMGS_DIR = 'Imgs/' if IS_DEVELOPMENT else '/mnt/SDCARD/Imgs/'  
     EXECUTABLE_7z_DIR = r"C:\Program Files\7-Zip" if IS_DEVELOPMENT else os.path.join(ASSETS_DIR, 'executables')
     
-    print(IS_DEVELOPMENT)
     
     IMAGES_DIR = os.path.join(ASSETS_DIR, 'images')
     IMAGES_CONTROLS_DIR = os.path.join(IMAGES_DIR, 'controls')
@@ -103,6 +103,7 @@ class Config:
     # Animation settings
     ANIMATION_DURATION = 300  # milliseconds
     LOADING_ANIMATION_SPEED = 100  # milliseconds per frame
+    IMAGE_LOAD_DELAY = 500  # milliseconds to wait before loading game images
 
     @classmethod
     def get_font_path(cls):

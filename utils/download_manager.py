@@ -6,6 +6,8 @@ import subprocess
 from utils.config import Config
 from utils.logger import logger
 from utils.screenscrapper import ScreenScraper
+from utils.theme import Theme
+from utils.alert_manager import AlertManager
 
 class DownloadManager:
     """Manages game downloads with progress tracking and cancellation support"""
@@ -26,6 +28,7 @@ class DownloadManager:
         # Download state
         self.download_thread = None
         self.is_downloading = False
+        self.is_scrapping = False
         self.download_progress = 0
         self.total_size = 0
         self.current_size = 0
@@ -139,16 +142,20 @@ class DownloadManager:
                     new_name = self.game_name + ext
                     os.rename(os.path.join(files_path, file), os.path.join(rom_path, new_name))
             logger.info(f"{self.game_name} has been extracted successfully")
+            
             scrapper = ScreenScraper()
-            message = scrapper.scrape_rom(self.image_url ,self.game_name, self.id)
+            self.is_scrapping = True
+            message = scrapper.scrape_rom(self.image_url, self.game_name, self.id)
             logger.info(message)
-          
+
+            
         except Exception as e:
             logger.error(f"Error moving and extracting game: {e}")
             
         finally:
             self.delete_folder(folder)
             self.is_extracting = False
+            self.is_scrapping = False
 
     def start_download(self):
         """
@@ -228,6 +235,7 @@ class DownloadManager:
             # Mark download as complete if not cancelled
             if not self.cancel_download.is_set():
                 self.download_progress = 100
+                self.is_downloading = False
                 logger.info(f"Download complete: {self.game_name}")
                 os.makedirs(os.path.join(Config.DOWNLOAD_DIR, self.game_name), exist_ok=True)
                 os.rename(self.download_path, os.path.join(Config.DOWNLOAD_DIR, self.game_name, self.filename))
@@ -236,9 +244,7 @@ class DownloadManager:
         except Exception as e:
             logger.error(f"Download failed: {e}")
             self.download_progress = -1  # Indicate error
-        finally:
-            self.is_downloading = False
-
+            
     def cancel(self):
         """
         Cancel the ongoing download
@@ -261,6 +267,7 @@ class DownloadManager:
         return {
             'is_downloading': self.is_downloading,
             'is_extracting': self.is_extracting,
+            'is_scrapping': self.is_scrapping,
             'progress': round(self.download_progress, 2),
             'total_size': self.total_size,
             'current_size': self.current_size,

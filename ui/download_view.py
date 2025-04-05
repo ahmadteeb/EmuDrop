@@ -17,14 +17,18 @@ class DownloadView(BaseView):
         """Initialize the download view"""
         super().__init__(renderer, font, texture_manager)
         
-    def render(self, active_downloads: Dict[str, DownloadManager], showing_confirmation: bool = False) -> None:
+    def render(self, active_downloads: Dict[str, Dict], showing_confirmation: bool = False, selected_download: Optional[str] = None) -> None:
         """Render the download status page
         
         Args:
-            active_downloads: Dictionary of active downloads with game names as keys
+            active_downloads: Dictionary of active downloads with game names as keys and download info as values
             showing_confirmation: Whether a confirmation dialog is being shown
+            selected_download: Name of the currently selected download, if any
         """
         try:
+            # Render the title at the top
+            self.render_title("Downloads")
+
             if not active_downloads:
                 self._render_no_downloads_message()
                 return
@@ -41,25 +45,43 @@ class DownloadView(BaseView):
             y_offset = start_y
             completed_downloads = []
             
-            for game_name, download_manager in list(active_downloads.items()):
-                status = download_manager.get_status()
+            for game_name, download_info in list(active_downloads.items()):
+                # Skip if no manager
+                if 'manager' not in download_info:
+                    continue
+
+                # Create status dict from download info
+                status = {
+                    'progress': download_info.get('progress', 0),
+                    'is_downloading': download_info.get('status') == 'downloading',
+                    'is_scrapping': download_info.get('status') == 'scrapping',
+                    'is_extracting': download_info.get('status') == 'extracting',
+                    'download_speed': download_info.get('speed', 0),
+                    'current_size': download_info.get('current_size', 0),
+                    'total_size': download_info.get('total_size', 0),
+                    'eta': download_info['eta']
+                }
                 
                 # Only remove completed downloads that are not extracting
-                if status.get('progress', 0) >= 100 and not status.get('is_extracting', False) and not status.get('is_downloading', False):
+                if status['progress'] >= 100 and not status['is_extracting'] and not status['is_downloading'] and not status['is_scrapping']:
                     completed_downloads.append(game_name)
                     continue
                 
                 # Calculate card dimensions
                 card_width = Config.SCREEN_WIDTH - (side_padding * 2)
                 
-                # Draw item background
+                # Draw item background with selection highlight if selected
                 item_rect = sdl2.SDL_Rect(
                     side_padding, 
                     y_offset, 
                     card_width, 
                     item_height
                 )
-                sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.CARD_BG, 255)
+                if game_name == selected_download:
+                    # Draw selection highlight
+                    sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.SELECTION_BG, 255)
+                else:
+                    sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.CARD_BG, 255)
                 sdl2.SDL_RenderFillRect(self.renderer, item_rect)
                 
                 # Draw item border
@@ -70,10 +92,10 @@ class DownloadView(BaseView):
                 self._render_game_status(game_name, status, y_offset)
                 
                 # Render progress bar only if downloading and not extracting
-                if status.get('is_downloading', False) and not status.get('is_extracting', False):
+                if status['is_downloading'] and not status['is_extracting'] and not status['is_scrapping']:
                     progress_bar_width = card_width - (inner_padding * 2)
                     self._render_progress_bar(
-                        status.get('progress', 0),
+                        status['progress'],
                         y_offset + item_height - progress_bar_height - 15,  # Bottom padding
                         side_padding + inner_padding,  # X position with padding
                         progress_bar_width,
@@ -86,16 +108,17 @@ class DownloadView(BaseView):
             for game_name in completed_downloads:
                 del active_downloads[game_name]
 
+            # Update control guides based on whether there are downloads and selection
             controls = {
                 'left': [
                     "back.png",
+                    "select.png"  # Only show A button if a download is selected
                 ],
-                'right': [
-                ]
+                'right': []
             }
             self.render_control_guides(controls)
         except Exception as e:
-            logger.error(f"Download status rendering error: {e}")
+            logger.error(f"Download status rendering error: {e}", exc_info=True)
 
     def _render_no_downloads_message(self):
         """Render message when no downloads are active"""
@@ -135,7 +158,9 @@ class DownloadView(BaseView):
         
         # Status section - check extraction first, then download
         if status.get('is_extracting', False):
-            self._render_extraction_progress(y_offset)
+            self._render_text_progress("Extracting", "Please wait while files are being extracted", y_offset)
+        elif status.get('is_scrapping', False):
+            self._render_text_progress("Scrapping", "Please wait while cover imgae is being scrapped", y_offset)
         elif status.get('is_downloading', False):
             self._render_download_progress(status, y_offset)
 
@@ -166,7 +191,7 @@ class DownloadView(BaseView):
         # Download speed with safe fallbacks
         speed = status.get('download_speed', 0)
         speed_text = f"Speed: {DownloadManager.format_size(speed)}/s" if speed else "Speed: calculating..."
-        
+        eta_text = f"ETA: {self.format_eta(status['eta'])}"
         # Size information
         current_size = status.get('current_size', 0)
         total_size = status.get('total_size', 0)
@@ -184,6 +209,13 @@ class DownloadView(BaseView):
         self.render_text(
             size_text,
             text_start_x + 450,  # Further right for size info
+            text_y,
+            color=Theme.TEXT_SECONDARY
+        )
+        
+        self.render_text(
+            eta_text,
+            text_start_x + 700,
             text_y,
             color=Theme.TEXT_SECONDARY
         )
@@ -222,7 +254,7 @@ class DownloadView(BaseView):
         sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.PROGRESS_BAR_BORDER, 255)
         sdl2.SDL_RenderDrawRect(self.renderer, border_rect)
 
-    def _render_extraction_progress(self, y_offset: int):
+    def _render_text_progress(self, title, text, y_offset: int):
         """Render extraction progress section
         
         Args:
@@ -235,7 +267,7 @@ class DownloadView(BaseView):
         
         # Render extracting text with fixed width for dots
         self.render_text(
-            f"Extracting{dots}{spaces}",
+            f"{title}{dots}{spaces}",
             40,  # Left padding
             y_offset + 45,  # Vertical position
             color=Theme.TEXT_ACCENT  # Use accent color for visibility
@@ -243,8 +275,14 @@ class DownloadView(BaseView):
         
         # Add a small status message
         self.render_text(
-            "Please wait while files are being extracted",
+            text,
             250,  # Position after "Extracting" text
             y_offset + 45,
             color=Theme.TEXT_SECONDARY
         )
+        
+    def format_eta(self, seconds):
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        return f"{int(hours):02}:{int(minutes):02}:{int(secs):02}"

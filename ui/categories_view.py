@@ -16,6 +16,9 @@ class CategoriesView(BaseView):
     def render(self, current_page: int, selected_category: int) -> None:
         """Render categories in a modern grid layout with console images"""
         try:
+            # Render the title at the top
+            self.render_title("Categories")
+
             # Get categories for current page
             categories = CategoryManager.get_categories()
             total_categories = len(categories)
@@ -73,7 +76,8 @@ class CategoriesView(BaseView):
                 'left': [
                     "grid-controls.png",
                     "select.png",
-                    "back.png"
+                    "back.png",
+                    "downloads.png"
                 ],
                 'right': [
                     "previous-page.png",

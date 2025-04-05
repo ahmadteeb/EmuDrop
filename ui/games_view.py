@@ -82,6 +82,9 @@ class GamesView(BaseView):
             games_override: Optional list of games to display instead of category games
         """
         try:
+            # Render the title at the top
+            self.render_title("Games")
+
             # Get games list (either from override or category)
             games = games_override if games_override is not None else GameManager.get_games_by_category(category_id)
             
@@ -303,6 +306,7 @@ class GamesView(BaseView):
                     "select.png",
                     "back.png",
                     "search.png",
+                    "downloads.png"
                 ],
                 'right': [
                     "previous-page.png",
