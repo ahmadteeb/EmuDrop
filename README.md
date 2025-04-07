@@ -24,7 +24,7 @@ A modern, user-friendly game ROM downloader application mainly for Trimui Smart 
 
 ## Installation
 1. Download the latest release.
-
+    - https://github.com/ahmadteeb/EmuDrop/releases
 2. Extract the downloaded file to:
     - /mnt/SDCARD/Apps/
 
