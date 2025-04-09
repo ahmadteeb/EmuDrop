@@ -70,23 +70,25 @@ class GamesView(BaseView):
             
         return state
     
-    def render(self, category_id: str, current_page: int, selected_game: int, 
-               show_image: bool = False, games_override: Optional[List[Dict]] = None) -> None:
+    def render(self,
+               current_page: int, selected_game: int, 
+               show_image: bool = False,
+               isSearched: bool = False, games: list = None,
+               active_downloads_count: int = None) -> None:
+        
         """Render the games view
         
         Args:
-            category_id: ID of the current category
             current_page: Current page number
             selected_game: Index of the currently selected game
             show_image: Whether to show the game image
-            games_override: Optional list of games to display instead of category games
         """
         try:
             # Render the title at the top
             self.render_title("Games")
 
-            # Get games list (either from override or category)
-            games = games_override if games_override is not None else GameManager.get_games_by_category(category_id)
+            if active_downloads_count:
+                self._render_active_download_count(active_downloads_count)
             
             if not games:
                 # Show "No games found" message
@@ -234,8 +236,7 @@ class GamesView(BaseView):
                     sdl2.SDL_FreeSurface(surface)
                     
                     # Get marquee state
-                    game_id = f"{category_id}_{i}"
-                    marquee_state = self._get_marquee_state(game_id, text_width, container_width, is_selected)
+                    marquee_state = self._get_marquee_state(i, text_width, container_width, is_selected)
                     
                     # Create clipping rectangle
                     clip_rect = sdl2.SDL_Rect(
@@ -283,7 +284,7 @@ class GamesView(BaseView):
             # Render page navigation with modern styling
             if games:
                 nav_text = f"Page {current_page + 1} of {total_pages}"
-                if games_override is not None:
+                if isSearched:
                     nav_text = f"Search Results: {len(games)} found - " + nav_text
             else:
                 nav_text = "No games found"
@@ -332,4 +333,25 @@ class GamesView(BaseView):
             sdl2.SDL_SetRenderDrawColor(self.renderer, 80, 80, 80, 255)
             sdl2.SDL_RenderDrawRect(self.renderer, placeholder_rect)
         except Exception as e:
-            logger.error(f"Error rendering game placeholder: {e}", exc_info=True) 
+            logger.error(f"Error rendering game placeholder: {e}", exc_info=True)
+    
+    
+    def _render_active_download_count(self, count):
+        download_text = f"Active Downloads: {count}"
+        # Calculate position for right alignment
+        text_surface = sdl2.sdlttf.TTF_RenderText_Blended(
+            self.font,
+            download_text.encode('utf-8'),
+            sdl2.SDL_Color(*Theme.TEXT_HIGHLIGHT)
+        )
+        text_width = text_surface.contents.w
+        sdl2.SDL_FreeSurface(text_surface)
+        x_pos = Config.SCREEN_WIDTH - text_width - 20
+        
+        self.render_text(
+            download_text,
+            x_pos,
+            20,
+            color=Theme.TEXT_HIGHLIGHT,
+            center=False
+        )

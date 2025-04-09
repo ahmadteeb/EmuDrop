@@ -210,6 +210,9 @@ class DownloadManager:
                 self.total_size = int(response.headers.get('content-length', 0))
                 
                 # Open file for writing
+                if os.path.exists(self.download_path):
+                    os.remove(self.download_path)
+                    
                 with open(self.download_path, 'wb') as file:
                     start_time = time.time()
                     downloaded = 0

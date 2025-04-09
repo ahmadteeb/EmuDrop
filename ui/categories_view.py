@@ -13,11 +13,15 @@ from .base_view import BaseView
 class CategoriesView(BaseView):
     """View class for rendering game categories"""
     
-    def render(self, current_page: int, selected_category: int) -> None:
+    def render(self, current_page: int, selected_category: int, active_downloads_count: Dict = None) -> None:
         """Render categories in a modern grid layout with console images"""
         try:
             # Render the title at the top
             self.render_title("Categories")
+
+            # Show active downloads count in the corner
+            if active_downloads_count:
+                self._render_active_download_count(active_downloads_count)
 
             # Get categories for current page
             categories = CategoryManager.get_categories()
@@ -106,3 +110,23 @@ class CategoriesView(BaseView):
                 sdl2.SDL_RenderCopy(self.renderer, texture, None, rect)
         except Exception as e:
             logger.error(f"Error rendering console image: {e}", exc_info=True) 
+            
+    def _render_active_download_count(self, count):
+        download_text = f"Active Downloads: {count}"
+        # Calculate position for right alignment
+        text_surface = sdl2.sdlttf.TTF_RenderText_Blended(
+            self.font,
+            download_text.encode('utf-8'),
+            sdl2.SDL_Color(*Theme.TEXT_HIGHLIGHT)
+        )
+        text_width = text_surface.contents.w
+        sdl2.SDL_FreeSurface(text_surface)
+        x_pos = Config.SCREEN_WIDTH - text_width - 20
+        
+        self.render_text(
+            download_text,
+            x_pos,
+            20,
+            color=Theme.TEXT_HIGHLIGHT,
+            center=False
+        )
