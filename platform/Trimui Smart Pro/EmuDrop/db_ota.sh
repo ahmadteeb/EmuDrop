@@ -34,7 +34,7 @@ get_latest_version() {
 # Function to download the latest release
 download_latest_release() {
     local version="$1"
-    local url="https://github.com/$REPO/releases/download/$version-db/$DB_FILE_NAME-$version"
+    local url="https://github.com/$REPO/releases/download/$version-db/catalog-$version.db"
 
     echo "Downloading the latest release from: $url"
     if ! curl -L -k -o $DB_FILE_NAME "$url"; then
