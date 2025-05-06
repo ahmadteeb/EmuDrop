@@ -52,6 +52,7 @@ A modern, user-friendly game ROM downloader application mainly for Trimui Smart 
 
 ## Bugs Solved
 
+- Fixed screen timeout issue when device is left idle
 - Fixed memory leaks in SDL2 texture handling
 - Resolved controller input lag issues
 - Fixed download progress bar accuracy
