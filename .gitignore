@@ -1,8 +1,10 @@
 __pycache__
 venv
-download
+downloads
 Roms
 Imgs
 tools/toolchain/workspace/*
 assets/images/cache/*
 EmuDrop.log
+catalog.db
+temp

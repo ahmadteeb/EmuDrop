@@ -1,13 +1,39 @@
 # EmuDrop
 
-A modern, user-friendly game ROM downloader application mainly for Trimui Smart Pro developed using Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
+A modern, user-friendly game ROM downloader application mainly for Trimui Smart Pro and Trimui Brick developed using Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
+
+## 📸 Screenshots
+
+<div align="center">
+
+### 🎮 Platform Selection
+![Platforms View](screenshots/platforms.png)
+*Browse through a curated collection of gaming platforms. The intuitive interface makes it easy to navigate between different systems.*
+
+### 🎯 Game Selection
+![Games View](screenshots/games.png)
+*Explore an extensive library of games for your chosen platform. Each game entry includes detailed information and cover art.*
+
+### 🔍 Search & Discovery
+![Search Interface](screenshots/search.png)
+*Powerful search functionality with instant results. Find your favorite games quickly with our optimized search engine.*
+
+### 📚 Game Sources
+![Sources View](screenshots/sources.png)
+*Filter and discover games from various trusted sources. Easily switch between different ROM providers, each offering unique collections and regional variants. Our intelligent source filtering helps you find the perfect version of your favorite games.*
+
+### ⬇️ Download Center
+![Downloads View](screenshots/downloads.png)
+*Monitor and manage your downloads with real-time progress tracking. Queue multiple downloads and track their status.*
+
+</div>
 
 ## Features
 
 - 🎮 Controller Support: Full gamepad support for easy navigation
 - ⌨️ On-screen Keyboard: Virtual keyboard for search functionality
 - 📱 Modern UI: Clean and intuitive interface built with SDL2
-- 🗂️ Category Management: Browse games by platform/category
+- 🗂️ platform Management: Browse games by platform/platform
 - ⬇️ Download Management: Track and manage game downloads
 - 🖼️ Rom Imgs Scrapping: Downloading the game 2d art box cover
 - 🔍 Search Functionality: Find games quickly
@@ -15,18 +41,48 @@ A modern, user-friendly game ROM downloader application mainly for Trimui Smart 
 - 🎯 Progress Tracking: Visual feedback for downloads
 - 💾 Multi-format Support: Handles various ROM formats and compression
 - 🔄 Auto Updates: Built-in OTA updates for seamless app maintenance
+- 📚 Sources: Game ROMs from different sources
+- 🔒 Download Queue: Manage multiple downloads simultaneously
+- 🗑️ Cache Management: Automatic cleanup of temporary files
+- 📱 Responsive Design: Adapts to different screen sizes
+- 🗄️ SQLite Database: Efficient data storage and retrieval
+- 📊 Data Analytics: Enhanced search and filtering capabilities
+- 🔄 Data Synchronization: Real-time updates and consistency
+- 📈 Performance Optimization: Faster data access and queries
 
-## Requirements
+## Bugs Solved
 
-- Python 3.6+
-- SDL2 and its dependencies
-- Required Python packages (listed in requirements.txt)
+- Fixed memory leaks in SDL2 texture handling
+- Resolved controller input lag issues
+- Fixed download progress bar accuracy
+- Corrected platform detection on Trimui Smart Pro
+- Resolved screen tearing during scrolling
+- Fixed keyboard input handling on special characters
+- Corrected download queue management
+- Resolved image caching issues
+- Corrected search functionality with special characters
+- Resolved download resume functionality
+- Fixed screen orientation issues
+- Corrected touch input calibration
+- Resolved memory management during large downloads
+- Fixed UI scaling on different resolutions
+- Optimized JSON to SQLite migration process
+- Fixed data consistency issues during updates
+- Resolved database indexing performance
+- Corrected data synchronization conflicts
+- Fixed query optimization for large datasets
 
 ## Installation
 1. Download the latest release.
     - https://github.com/ahmadteeb/EmuDrop/releases
 2. Extract the downloaded file to:
     - /mnt/SDCARD/Apps/
+
+## Requirements
+
+- Python 3.6+
+- SDL2 and its dependencies
+- Required Python packages (listed in requirements.txt)
 
 ## Cross-Compiling
 
@@ -68,7 +124,7 @@ python main.py
    - Press L/R for page navigation
 
 3. Downloading Games:
-   - Browse categories or search for specific games
+   - Browse platforms or search for specific games
    - Select a game to view details
    - Confirm download when prompted
    - Monitor download progress in the downloads view

@@ -1,37 +1,40 @@
 import sdl2
 import sdl2.sdlttf
-import ctypes
 import time
 import math
+from ui.base_view import BaseView
 from utils.config import Config
 from utils.logger import logger
 from utils.theme import Theme
 
-class LoadingScreen:
+class LoadingScreen(BaseView):
     """Manages the loading screen rendering"""
 
-    def __init__(self, renderer, width, height):
+    def __init__(self, renderer, width, height, shared_font=None):
         """
         Initialize the loading screen
         
         :param renderer: SDL renderer
         :param width: Screen width
         :param height: Screen height
+        :param shared_font: Optional shared font instance
         """
-        self.renderer = renderer
+        super().__init__(renderer, shared_font)
         self.width = width
         self.height = height
-        self.font = None
-        self._load_font()
+        if not self.font:
+            self._load_font()
         self.last_time = time.time()
         self.animation_angle = 0
 
     def _load_font(self):
+        """Load the font with the correct scaled size"""
         font_path = Config.get_font_path()
-        
         if font_path:
             try:
-                self.font = sdl2.sdlttf.TTF_OpenFont(font_path.encode('utf-8'), 36)
+                # Use a larger font size for the loading screen
+                font_size = int(36 * Config.SCALE_FACTOR)
+                self.font = sdl2.sdlttf.TTF_OpenFont(font_path.encode('utf-8'), font_size)
                 if self.font:
                     logger.info(f"Loading screen font loaded: {font_path}")
                     return
@@ -47,26 +50,29 @@ class LoadingScreen:
             sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.LOADING_BG, 255)
             sdl2.SDL_RenderClear(self.renderer)
             
-            # Calculate center position
+            # Calculate scaled dimensions and positions
             center_x = self.width // 2
             center_y = self.height // 2
             
-            # Draw animated loading circle
-            self._render_loading_circle(center_x, center_y - 50)
+            # Scale the vertical spacing
+            vertical_spacing = int(50 * Config.SCALE_FACTOR)
             
-            # Draw progress bar
-            bar_width = 400
-            bar_height = 6
+            # Draw animated loading circle
+            self._render_loading_circle(center_x, center_y - vertical_spacing)
+            
+            # Draw progress bar with scaled dimensions
+            bar_width = int(400 * Config.SCALE_FACTOR)
+            bar_height = int(6 * Config.SCALE_FACTOR)
             self._render_progress_bar(
                 center_x - bar_width // 2,
-                center_y + 50,
+                center_y + vertical_spacing,
                 bar_width,
                 bar_height,
                 progress
             )
             
             # Draw loading message
-            self._render_text(status_text, center_x, center_y + 100)
+            self._render_text(status_text, center_x, center_y + vertical_spacing * 2)
             
             # Update animation
             current_time = time.time()
@@ -82,7 +88,8 @@ class LoadingScreen:
 
     def _render_loading_circle(self, x, y):
         """Render animated loading circle"""
-        radius = 30
+        # Scale the radius and line thickness
+        radius = int(30 * Config.SCALE_FACTOR)
         segments = 12
         segment_angle = 360 / segments
         
@@ -99,14 +106,42 @@ class LoadingScreen:
             x2 = x + radius * math.cos(next_angle)
             y2 = y + radius * math.sin(next_angle)
             
-            # Draw segment
+            # Draw segment with scaled line thickness
             sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.LOADING_SPINNER, opacity)
-            sdl2.SDL_RenderDrawLine(self.renderer, int(x1), int(y1), int(x2), int(y2))
+            self._draw_thick_line(int(x1), int(y1), int(x2), int(y2), int(2 * Config.SCALE_FACTOR))
+    
+    def _draw_thick_line(self, x1, y1, x2, y2, thickness):
+        """Draw a line with specified thickness"""
+        angle = math.atan2(y2 - y1, x2 - x1)
+        dx = thickness * math.sin(angle) / 2
+        dy = thickness * math.cos(angle) / 2
+        
+        points = [
+            (x1 + dx, y1 - dy),
+            (x1 - dx, y1 + dy),
+            (x2 - dx, y2 + dy),
+            (x2 + dx, y2 - dy)
+        ]
+        
+        # Convert points to SDL_Point array
+        sdl_points = (sdl2.SDL_Point * 5)(
+            sdl2.SDL_Point(int(points[0][0]), int(points[0][1])),
+            sdl2.SDL_Point(int(points[1][0]), int(points[1][1])),
+            sdl2.SDL_Point(int(points[2][0]), int(points[2][1])),
+            sdl2.SDL_Point(int(points[3][0]), int(points[3][1])),
+            sdl2.SDL_Point(int(points[0][0]), int(points[0][1]))  # Close the polygon
+        )
+        
+        sdl2.SDL_RenderDrawLines(self.renderer, sdl_points, 5)
     
     def _render_progress_bar(self, x, y, width, height, progress):
         """Render a modern progress bar"""
+        # Scale the padding and glow size
+        padding = int(2 * Config.SCALE_FACTOR)
+        glow_size = int(2 * Config.SCALE_FACTOR)
+        
         # Draw background
-        bg_rect = sdl2.SDL_Rect(x - 2, y - 2, width + 4, height + 4)
+        bg_rect = sdl2.SDL_Rect(x - padding, y - padding, width + padding * 2, height + padding * 2)
         sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.LOADING_PROGRESS_BG, 255)
         sdl2.SDL_RenderFillRect(self.renderer, bg_rect)
         
@@ -121,39 +156,19 @@ class LoadingScreen:
             glow_color = (*Theme.LOADING_PROGRESS, 100)  # Add alpha value
             sdl2.SDL_SetRenderDrawBlendMode(self.renderer, sdl2.SDL_BLENDMODE_BLEND)
             sdl2.SDL_SetRenderDrawColor(self.renderer, *glow_color)
-            glow_rect = sdl2.SDL_Rect(x, y - 2, progress_width, height + 4)
+            glow_rect = sdl2.SDL_Rect(x, y - glow_size, progress_width, height + glow_size * 2)
             sdl2.SDL_RenderFillRect(self.renderer, glow_rect)
     
     def _render_text(self, text, x, y):
         """Render text with a subtle glow effect"""
-        # Create text surface
-        text_surface = sdl2.sdlttf.TTF_RenderText_Blended(
-            self.font,
-            text.encode('utf-8'),
-            sdl2.SDL_Color(*Theme.TEXT_PRIMARY, 255)
-        )
-        
-        # Create texture from surface
-        text_texture = sdl2.SDL_CreateTextureFromSurface(self.renderer, text_surface)
-        
-        # Get text dimensions
-        text_width = text_surface.contents.w
-        text_height = text_surface.contents.h
-        
-        # Draw text
-        dst_rect = sdl2.SDL_Rect(
-            x - text_width // 2,
-            y - text_height // 2,
-            text_width,
-            text_height
-        )
-        sdl2.SDL_RenderCopy(self.renderer, text_texture, None, dst_rect)
-        
-        # Cleanup
-        sdl2.SDL_FreeSurface(text_surface)
-        sdl2.SDL_DestroyTexture(text_texture)
-
-    def cleanup(self):
-        """Clean up loading screen resources"""
-        if self.font:
-            sdl2.sdlttf.TTF_CloseFont(self.font)
+        texture, width, height = self.create_text_texture(text, Theme.TEXT_PRIMARY)
+        if texture:
+            # Draw text
+            dst_rect = sdl2.SDL_Rect(
+                x - width // 2,
+                y - height // 2,
+                width,
+                height
+            )
+            sdl2.SDL_RenderCopy(self.renderer, texture, None, dst_rect)
+            sdl2.SDL_DestroyTexture(texture)

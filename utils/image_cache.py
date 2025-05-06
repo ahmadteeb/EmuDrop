@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Optional
 from utils.config import Config
-
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +25,9 @@ class ImageCache:
         # Generate a unique filename based on URL hash
         url_hash = hashlib.md5(image_url.encode()).hexdigest()
         
-        # Try to get file extension from URL, default to .jpg
-        try:
-            file_extension = os.path.splitext(image_url.split('?')[0])[-1] or '.jpg'
-        except:
-            file_extension = '.jpg'
         
-        cached_filename = f"{url_hash}{file_extension}"
+        cached_filename = f"{url_hash}.png"
         cached_path = os.path.join(cache_dir, cached_filename)
-        
         return cached_path
 
     @classmethod
@@ -89,6 +83,11 @@ class ImageCache:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
                 
+                #convert to png
+                with Image.open(cached_path) as img:
+                    if img.format != 'PNG':
+                        img.convert("RGBA").save(cached_path, format='PNG')
+                
                 # Verify file was saved successfully
                 if not os.path.exists(cached_path) or os.path.getsize(cached_path) == 0:
                     logger.warning(f"Failed to save image from {image_url}")
@@ -120,39 +119,3 @@ class ImageCache:
             return Config.DEFAULT_IMAGE_PATH
         
         return None
-
-    @classmethod
-    def clear_old_cache(cls, max_cache_size_mb: int = None):
-        """
-        Clear old cached images if total cache size exceeds limit
-        
-        :param max_cache_size_mb: Maximum cache size in megabytes (optional)
-        """
-        try:
-            # Use Config.IMAGES_CACHE_DIR consistently
-            cache_dir = Config.IMAGES_CACHE_DIR
-            
-            # Get all cached files with their modification times
-            cached_files = [
-                os.path.join(cache_dir, f) for f in os.listdir(cache_dir) 
-                if os.path.isfile(os.path.join(cache_dir, f))
-            ]
-            
-            # Sort files by modification time (oldest first)
-            cached_files.sort(key=os.path.getmtime)
-            
-            # Calculate current cache size
-            total_size = sum(os.path.getsize(f) for f in cached_files)
-            total_size_mb = total_size / (1024 * 1024)
-            
-            # Use provided max size or default from config
-            max_size = max_cache_size_mb or Config.IMAGE_CACHE_MAX_SIZE_MB
-            
-            # Remove oldest files if cache exceeds limit
-            while total_size_mb > max_size and cached_files:
-                oldest_file = cached_files.pop(0)
-                os.remove(oldest_file)
-                total_size_mb -= os.path.getsize(oldest_file) / (1024 * 1024)
-        
-        except Exception as e:
-            logger.error(f"Error clearing image cache: {e}") 

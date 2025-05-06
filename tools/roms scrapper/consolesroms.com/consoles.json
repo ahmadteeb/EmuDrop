@@ -1,0 +1,130 @@
+[
+    {
+        "id": "PSP",
+        "page": "/roms/psp/"
+    },
+    {
+        "id": "SFC",
+        "page": "/roms/snes/"
+    },
+    {
+        "id": "NDS",
+        "page": "/roms/nds/"
+    },
+    {
+        "id": "GBA",
+        "page": "/roms/gba/"
+    },
+    {
+        "id": "N64",
+        "page": "/roms/n64/"
+    },
+    {
+        "id": "MAME",
+        "page": "/roms/mame/"
+    },
+    {
+        "id": "PS",
+        "page": "/roms/psx/"
+    },
+    {
+        "id": "MD",
+        "page": "/roms/sega-genesis/"
+    },
+    {
+        "id": "GBC",
+        "page": "/roms/gbc/"
+    },
+    {
+        "id": "DC",
+        "page": "/roms/sega-dreamcast/"
+    },
+    {
+        "id": "GB",
+        "page": "/roms/gb/"
+    },
+    {
+        "id": "SEGACD",
+        "page": "/roms/sega-cd/"
+    },
+    {
+        "id": "NEOGEO",
+        "page": "/roms/new-geo/"
+    },
+    {
+        "id": "ATARI2600",
+        "page": "/roms/atari-2600/"
+    },
+    {
+        "id": "GG",
+        "page": "/roms/sega-game-gear/"
+    },
+    {
+        "id": "AMIGA",
+        "page": "/roms/amiga/"
+    },
+    {
+        "id": "MS",
+        "page": "/roms/sega-master-system/"
+    },
+    {
+        "id": "NAOMI",
+        "page": "/roms/sega-naomi/"
+    },
+    {
+        "id": "DOS",
+        "page": "/roms/dos/"
+    },
+    {
+        "id": "ZXS",
+        "page": "/roms/zx-spectrum/"
+    },
+    {
+        "id": "PCE",
+        "page": "/roms/turbografx16/"
+    },
+    {
+        "id": "ATARI5200",
+        "page": "/roms/atari-5200/"
+    },
+    {
+        "id": "VB",
+        "page": "/roms/virtual-boy/"
+    },
+    {
+        "id": "LYNX",
+        "page": "/roms/atari-lynx/"
+    },
+    {
+        "id": "ATARI7800",
+        "page": "/roms/atari-7800/"
+    },
+    {
+        "id": "ATARIST",
+        "page": "/roms/atari-st/"
+    },
+    {
+        "id": "NGP",
+        "page": "/roms/neo-geo-pocket/"
+    },
+    {
+        "id": "X68000",
+        "page": "/roms/sharp-x68000/"
+    },
+    {
+        "id": "PANASONIC",
+        "page": "/roms/3do/"
+    },
+    {
+        "id": "PCFX",
+        "page": "/roms/pc-fx/"
+    },
+    {
+        "id": "WS",
+        "page": "/roms/wonderswan/"
+    },
+    {
+        "id": "WSC",
+        "page": "/roms/wonderswan-color/"
+    }
+]

@@ -61,7 +61,7 @@ class Theme:
     
     # Progress bar styles
     PROGRESS_BAR_BG = (50, 50, 50)
-    PROGRESS_BAR_FILL = (0, 200, 100)
+    PROGRESS_BAR_FILL = (180, 180, 200)
     PROGRESS_BAR_BORDER = (100, 100, 100)
     PROGRESS_BAR_TEXT = (200, 200, 200)
     
@@ -88,6 +88,11 @@ class Theme:
     
     # Spinner animation
     SPINNER_COLOR = (0, 150, 255)
+    
+    # Scroll bar colors
+    SCROLL_BAR_BG = (40, 40, 40, 255)  # Dark background for scroll bar
+    SCROLL_BAR_THUMB = (80, 80, 80, 255)  # Thumb color for scroll bar
+    SCROLL_BAR_BORDER = (60, 60, 60, 255)  # Border color for scroll bar
     
     @staticmethod
     def get_hover_color(base_color):

@@ -1,0 +1,681 @@
+[
+  {
+    "id": "ATARI2600",
+    "name": "Atari 2600",
+    "image": "ATARI2600.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ATARI5200",
+    "name": "Atari 5200",
+    "image": "ATARI5200.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ATARI7800",
+    "name": "Atari 7800",
+    "image": "ATARI7800.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "COLECO",
+    "name": "Colecovision",
+    "image": "COLECO.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "COLSGM",
+    "name": "Colecovision",
+    "image": "COLSGM.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "UZEBOX",
+    "name": "Uzebox",
+    "image": "UZEBOX.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "CHANNELF",
+    "name": "Channel F",
+    "image": "CHANNELF.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "VECTREX",
+    "name": "Vectrex",
+    "image": "VECTREX.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "VIDEOPAC",
+    "name": "Videopac G7000",
+    "image": "VIDEOPAC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "INTELLIVISION",
+    "name": "Intellivision",
+    "image": "INTELLIVISION.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PCE",
+    "name": "PC Engine",
+    "image": "PCE.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PCECD",
+    "name": "PC Engine CD Rom",
+    "image": "PCECD.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SFX",
+    "name": "PC Engine SuperGrafx",
+    "image": "SFX.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PCFX",
+    "name": "PC FX",
+    "image": "PCFX.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "FDS",
+    "name": "Family Computer Disk System",
+    "image": "FDS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "FC",
+    "name": "Nintendo NES",
+    "image": "FC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "N64",
+    "name": "Nintendo 64",
+    "image": "N64.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "N64DD",
+    "name": "Nintendo 64DD",
+    "image": "N64DD.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SATELLAVIEW",
+    "name": "Satellaview",
+    "image": "SATELLAVIEW.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SFC",
+    "name": "Super Nintendo",
+    "image": "SFC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SFCMSU",
+    "name": "Super Nintendo MSU 1",
+    "image": "SFCMSU.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PANASONIC",
+    "name": "Panasonic 3DO",
+    "image": "PANASONIC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "DC",
+    "name": "Dreamcast",
+    "image": "DC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "MS",
+    "name": "Master System",
+    "image": "MS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SEGACD",
+    "name": "Mega CD)",
+    "image": "SEGACD.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "MD",
+    "name": "Mega Drive",
+    "image": "MD.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "MDMSU",
+    "name": "Mega Drive MSU",
+    "image": "MDMSU.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SEGA32X",
+    "name": "Mega Drive 32X",
+    "image": "SEGA32X.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SATURN",
+    "name": "Saturn",
+    "image": "SATURN.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SG1000",
+    "name": "SG 1000",
+    "image": "SG1000.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "NEOGEO",
+    "name": "Neo Geo",
+    "image": "NEOGEO.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "NEOCD",
+    "name": "Neo Geo CD",
+    "image": "NEOCD.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PS",
+    "name": "Playstation",
+    "image": "PS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SGB",
+    "name": "Super Game Boy",
+    "image": "SGB.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SUFAMI",
+    "name": "Sufami Turbo",
+    "image": "SUFAMI.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "LYNX",
+    "name": "Atari Lynx",
+    "image": "LYNX.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "WS",
+    "name": "WonderSwan",
+    "image": "WS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "WSC",
+    "name": "WonderSwan Color",
+    "image": "WSC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "MEGADUCK",
+    "name": "Mega Duck",
+    "image": "MEGADUCK.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ARDUBOY",
+    "name": "Arduboy",
+    "image": "ARDUBOY.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "GW",
+    "name": "Game & Watch",
+    "image": "GW.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "GB",
+    "name": "Game Boy",
+    "image": "GB.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "GBA",
+    "name": "Game Boy Advance",
+    "image": "GBA.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "GBC",
+    "name": "Game Boy Color",
+    "image": "GBC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "NDS",
+    "name": "Nintendo DS",
+    "image": "NDS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "POKEMINI",
+    "name": "Pok\u00e9mon mini",
+    "image": "POKEMINI.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "VB",
+    "name": "Virtual Boy",
+    "image": "VB.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "GG",
+    "name": "Game Gear",
+    "image": "GG.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "NGP",
+    "name": "Neo Geo Pocket",
+    "image": "NGP.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "NGC",
+    "name": "Neo Geo Pocket Color",
+    "image": "NGC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PSPMINIS",
+    "name": "Playstation minis",
+    "image": "PSPMINIS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PSP",
+    "name": "Sony PSP",
+    "image": "PSP.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SUPERVISION",
+    "name": "Watara Supervision",
+    "image": "SUPERVISION.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ATOMISWAVE",
+    "name": "Atomiswave",
+    "image": "ATOMISWAVE.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "CANNONBALL",
+    "name": "Out Run",
+    "image": "CANNONBALL.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "CPS1",
+    "name": "Play System",
+    "image": "CPS1.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "CPS2",
+    "name": "Play System 2",
+    "image": "CPS2.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "CPS3",
+    "name": "Play System 3",
+    "image": "CPS3.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "FBNEO",
+    "name": "Neo Geo MVS",
+    "image": "FBNEO.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "NAOMI",
+    "name": "Naomi",
+    "image": "NAOMI.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "PGM",
+    "name": "IGS IGS",
+    "image": "PGM.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "MAME",
+    "name": "Arcade MAME",
+    "image": "MAME.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "MAME2003PLUS",
+    "name": "ARC. MAME",
+    "image": "MAME2003PLUS.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "MAME2010",
+    "name": "MAME2010",
+    "image": "MAME2010.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "DAPHNE",
+    "name": "Daphne",
+    "image": "DAPHNE.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "CPC",
+    "name": "Amstrad CPC",
+    "image": "CPC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "VMAC",
+    "name": "Mac OS",
+    "image": "VMAC.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ATARI800",
+    "name": "Atari 8bit",
+    "image": "ATARI800.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ATARIST",
+    "name": "Atari ST",
+    "image": "ATARIST.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "AMIGA",
+    "name": "Amiga",
+    "image": "AMIGA.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "AMIGACD",
+    "name": "Amiga CD",
+    "image": "AMIGACD.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "AMIGACDTV",
+    "name": "Amiga CDTV",
+    "image": "AMIGACDTV.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "C64",
+    "name": "Commodore 64",
+    "image": "C64.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "CPET",
+    "name": "Commodore PET",
+    "image": "CPET.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "CPLUS4",
+    "name": "Plus 4",
+    "image": "CPLUS4.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "VIC20",
+    "name": "Vic 20",
+    "image": "VIC20.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ENTERPRISE",
+    "name": "Enterprise 128",
+    "image": "ENTERPRISE.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "MSX",
+    "name": "Microsoft MSX",
+    "image": "MSX.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "MSX2",
+    "name": "Microsoft MSX2",
+    "image": "MSX2.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "DOS",
+    "name": "Microsoft Dos",
+    "image": "DOS.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "PC88",
+    "name": "PC 8801",
+    "image": "PC88.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PC98",
+    "name": "PC 9801",
+    "image": "PC98.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PALMOS",
+    "name": "Palm OS",
+    "image": "PALMOS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "X1",
+    "name": "Sharp X1",
+    "image": "X1.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "X68000",
+    "name": "X68000",
+    "image": "X68000.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "ZXS",
+    "name": "ZX Spectrum",
+    "image": "ZXS.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "TI83",
+    "name": "TI 83",
+    "image": "TI83.png",
+    "isExtractable": false,
+    "canBeRenamed": false
+  },
+  {
+    "id": "THOMSON",
+    "name": "MO TO",
+    "image": "THOMSON.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "VIDEOTON",
+    "name": "Videoton TVC",
+    "image": "VIDEOTON.png",
+    "isExtractable": true,
+    "canBeRenamed": true
+  },
+  {
+    "id": "CHAILOVE",
+    "name": "ChaiLove",
+    "image": "CHAILOVE.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "EASYRPG",
+    "name": "EasyRPG",
+    "image": "EASYRPG.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "LOWRESNX",
+    "name": "LowRes NX",
+    "image": "LOWRESNX.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "LUTRO",
+    "name": "Lutro",
+    "image": "LUTRO.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "OPENBOR",
+    "name": "OpenBOR",
+    "image": "OPENBOR.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "PICO",
+    "name": "Pico 8",
+    "image": "PICO.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "SCUMMVM",
+    "name": "ScummVM",
+    "image": "SCUMMVM.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  },
+  {
+    "id": "TIC",
+    "name": "TIC 80",
+    "image": "TIC.png",
+    "isExtractable": false,
+    "canBeRenamed": true
+  }
+]

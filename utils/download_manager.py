@@ -1,51 +1,94 @@
 import os
-import requests
+import shutil
+from requests import Session
 import threading
 import time
-import subprocess
+import json
+from dataclasses import dataclass, fields
 from utils.config import Config
 from utils.logger import logger
 from utils.screenscrapper import ScreenScraper
-from utils.theme import Theme
-from utils.alert_manager import AlertManager
+from utils.games_extractor_converter import GamesExtractorConverter
+
+@dataclass
+class GameProp:
+    platform_id: str
+    name: str
+    game_url: str
+    image_url: str
+    isExtractable: bool
+    canBeRenamed: bool
+    source_name: str
+    attributes: str
 
 class DownloadManager:
     """Manages game downloads with progress tracking and cancellation support"""
 
-    def __init__(self, id, game_name, game_url, image_url=None, isExtractable=False):
+    # Class variable to track all download managers
+    _all_managers = []
+    
+    def __init__(self, game: dict):
         """
         Initialize download manager for a specific game
         
         :param game_name: Name of the game to download
         :param game_url: URL to request download link
         """
-        self.id = id
-        self.game_name = game_name
-        self.game_url = game_url
-        self.image_url = image_url
-        self.isExtractable = isExtractable
         
-        # Download state
-        self.download_thread = None
-        self.is_downloading = False
-        self.is_scrapping = False
-        self.download_progress = 0
-        self.total_size = 0
-        self.current_size = 0
-        self.download_speed = 0
+        game_fields = {f.name for f in fields(GameProp)}
+        filtered_data = {k: v for k, v in game.items() if k in game_fields}
+        self.game_prop = GameProp(**filtered_data)
+        
+        for ch in ['<', '>', ':', '"', '/', '\\', '|', '?', '*']:
+            self.game_prop.name = self.game_prop.name.replace(ch, '')
+        
+        self.download_path = os.path.join(Config.DOWNLOAD_DIR, self.game_prop.name)
+        
+        # Download state as JSON
+        self.status = {
+            "state": "queued",  # queued, downloading, processing, scraping, completed, error, cancelled
+            "progress": 0,
+            "total_size": 0,
+            "current_size": 0,
+            "download_speed": 0,
+            "queue_position": 0,
+            "current_operation": "",
+            "error_message": "",
+            "is_paused": False
+        }
+        
+        # Control events
         self.cancel_download = threading.Event()
+        self.pause_download = threading.Event()
         
-        # Extraction state
-        self.is_extracting = False
+        # Thread references
+        self.download_url = None
+        self.session = Session()
+        self.download_thread = None
+        self.size_check_thread = None
+        self.size_check_complete = threading.Event()
+        self.size_check_error = None
+        self.gameExtractorConverter = None
         
-        # Ensure download directory exists
-        os.makedirs(Config.DOWNLOAD_DIR, exist_ok=True)
+    
+    
+    def add_manager(self):
+        DownloadManager._all_managers.append(self)
+        self._update_queue_positions()
+        
+    def _update_queue_positions(self):
+        """Update queue positions for all queued downloads"""
+        queued_managers = [m for m in DownloadManager._all_managers if m.status["state"] == "queued"]
+        for i, manager in enumerate(queued_managers):
+            manager.status["queue_position"] = i + 1
 
     def _get_download_url(self):
-        '''
-            This function if the downloading link need request
-        '''
-        return self.game_url
+        if self.download_url:
+            return self.download_url
+        
+        
+        self.filename = self.get_file_name_from_url(self.game_prop.game_url)
+        return self.game_prop.game_url
     
     def get_file_name_from_url(self, text):
         # Dictionary of URL-encoded characters
@@ -57,106 +100,11 @@ class DownloadManager:
             "%60": "`", "%7B": "{", "%7C": "|", "%7D": "}", "%7E": "~"
         }
         # Replace each encoded character with its actual character
-
         for encoded, decoded in decode_map.items():
             text = text.replace(encoded, decoded)
         
         file_name = text.split('/')[-1]
         return file_name
-
-    def delete_folder(self, folder):
-        """Recursively delete a folder and all its contents.
-        
-        Args:
-            folder (str): Path to the folder to delete
-        """
-        try:
-            for file in os.listdir(folder):
-                file_path = os.path.join(folder, file)
-                if os.path.isdir(file_path):
-                    self.delete_folder(file_path)
-                else:
-                    os.remove(file_path)
-            os.rmdir(folder)
-        except Exception as e:
-            logger.error(f"Error deleting folder {folder}: {e}")
-            raise
-        
-    def extractor(self, file, extract_to):
-        """Extract archive file.
-        
-        Args:
-            file (str): Path to the archive file
-            extract_to (str): Directory to extract files to
-            
-        Raises:
-            ValueError: If file extension is not supported
-        """
-        try:
-            if not os.path.exists(file):
-                raise FileNotFoundError(f"Archive file not found: {file}")
-                
-            if not os.path.exists(extract_to):
-                os.makedirs(extract_to)
-                
-            subprocess.run([f"{Config.EXECUTABLE_7z_DIR}/7z", "x", file, f"-o{extract_to}"])
-            
-        except Exception as e:
-            logger.error(f"Extraction error for {file}: {e}")
-            raise
-            
-    
-    def move_and_extract_game(self, folder):
-        """Move and extract game files to the ROMs directory"""
-        def scan_folder(subfolder):
-            # Handle nested folders
-            files = os.listdir(subfolder)
-            if files and os.path.isdir(os.path.join(subfolder, files[0])):
-                subfolder = os.path.join(subfolder, files[0])
-                
-            # Check for archive files
-            archive_files = [file for file in os.listdir(subfolder) if any(ext in file.lower() for ext in ['.zip', '.rar', '.7z'])]
-            if archive_files:
-                if not self.isExtractable:
-                    return subfolder, archive_files
-                
-                else:
-                    tmp_path = os.path.join(subfolder, 'tmp')
-                    os.makedirs(tmp_path, exist_ok=True)
-                    self.extractor(os.path.join(subfolder, archive_files[0]), tmp_path)
-                    return scan_folder(tmp_path)
-
-            else:
-                return subfolder, os.listdir(subfolder)
-            
-        try:
-            self.is_extracting = True
-            rom_path = os.path.join(Config.ROMS_DIR, self.id)
-            os.makedirs(rom_path, exist_ok=True)
-            
-            files_path, files = scan_folder(folder)               
-
-            for file in files:
-                if '.nfo' not in file:
-                    name, ext = os.path.splitext(file)
-                    new_name = self.game_name + ext
-                    os.rename(os.path.join(files_path, file), os.path.join(rom_path, new_name))
-                    
-            self.is_extracting = False
-            logger.info(f"{self.game_name} has been extracted successfully")
-            
-            scrapper = ScreenScraper()
-            self.is_scrapping = True
-            message = scrapper.scrape_rom(self.image_url, self.game_name, self.id)
-            self.is_scrapping = False
-            logger.info(message)
-
-            
-        except Exception as e:
-            logger.error(f"Error moving and extracting game: {e}")
-            
-        finally:
-            self.delete_folder(folder)
 
     def start_download(self):
         """
@@ -165,7 +113,7 @@ class DownloadManager:
         :return: True if download started, False otherwise
         """
         # Prevent multiple simultaneous downloads
-        if self.is_downloading:
+        if self.status["state"] == "downloading":
             logger.warning("Download already in progress")
             return False
         
@@ -173,19 +121,29 @@ class DownloadManager:
         download_url = self._get_download_url()
         if not download_url:
             logger.error("Could not retrieve download URL")
+            self.status["state"] = "error"
+            self.status["error_message"] = "Could not retrieve download URL"
             return False
         
         # Reset download state
-        self.is_downloading = True
-        self.download_progress = 0
-        self.current_size = 0
+        self.status.update({
+            "state": "downloading",
+            "progress": 0,
+            "current_size": 0,
+            "queue_position": 0,
+            "error_message": "",
+            "is_paused": False
+        })
+        
         self.cancel_download.clear()
         
-        # Prepare download file path
-        self.filename = self.get_file_name_from_url(download_url)
-        self.download_path = os.path.join(Config.DOWNLOAD_DIR, self.filename)
+        # Update queue positions for remaining queued downloads
+        self._update_queue_positions()
+        
         if os.path.exists(self.download_path):
-            os.remove(self.download_path)
+            shutil.rmtree(self.download_path)
+            
+        os.makedirs(self.download_path)
 
         # Start download in a separate thread
         self.download_thread = threading.Thread(
@@ -196,6 +154,20 @@ class DownloadManager:
         
         return True
 
+    def pause(self):
+        """Pause the ongoing download"""
+        if self.status["state"] == "downloading":
+            self.pause_download.set()
+            self.status["is_paused"] = True
+            logger.info(f"Download paused: {self.game_prop.name}")
+
+    def resume(self):
+        """Resume the paused download"""
+        if self.status["state"] == "downloading" and self.status["is_paused"]:
+            self.pause_download.clear()
+            self.status["is_paused"] = False
+            logger.info(f"Download resumed: {self.game_prop.name}")
+
     def _download_worker(self, download_url):
         """
         Background worker to download the game file
@@ -203,17 +175,13 @@ class DownloadManager:
         :param download_url: URL to download from
         """
         try:
-            with requests.get(download_url, stream=True, timeout=30) as response:
+            with self.session.get(download_url, stream=True, timeout=30) as response:
                 response.raise_for_status()
                 
                 # Get total file size
-                self.total_size = int(response.headers.get('content-length', 0))
-                
-                # Open file for writing
-                if os.path.exists(self.download_path):
-                    os.remove(self.download_path)
+                self.status["total_size"] = int(response.headers.get('content-length', 0))
                     
-                with open(self.download_path, 'wb') as file:
+                with open(os.path.join(self.download_path, self.filename), 'wb') as file:
                     start_time = time.time()
                     downloaded = 0
                     
@@ -223,44 +191,79 @@ class DownloadManager:
                             logger.info("Download cancelled")
                             break
                         
+                        # Check for pause
+                        if self.pause_download.is_set():
+                            while self.pause_download.is_set() and not self.cancel_download.is_set():
+                                time.sleep(0.1)  # Sleep while paused
+                            if self.cancel_download.is_set():
+                                break
+                        
                         if chunk:
                             file.write(chunk)
                             downloaded += len(chunk)
                             
                             # Calculate progress and speed
                             elapsed_time = time.time() - start_time
-                            self.current_size = downloaded
-                            self.download_progress = (downloaded / self.total_size * 100) if self.total_size > 0 else 0
+                            self.status["current_size"] = downloaded
+                            self.status["progress"] = (downloaded / self.status["total_size"] * 100) if self.status["total_size"] > 0 else 0
                             
                             # Update download speed every second
                             if elapsed_time > 0:
-                                self.download_speed = downloaded / elapsed_time
+                                self.status["download_speed"] = downloaded / elapsed_time
             
-            # Mark download as complete if not cancelled
+            # Process the downloaded file if not cancelled
             if not self.cancel_download.is_set():
-                self.download_progress = 100
-                self.is_downloading = False
-                logger.info(f"Download complete: {self.game_name}")
-                os.makedirs(os.path.join(Config.DOWNLOAD_DIR, self.game_name), exist_ok=True)
-                os.rename(self.download_path, os.path.join(Config.DOWNLOAD_DIR, self.game_name, self.filename))
-                self.move_and_extract_game(os.path.join(Config.DOWNLOAD_DIR, self.game_name))
-            
+                self.status["progress"] = 100
+                self.status["state"] = "processing"
+                
+                self.gameExtractorConverter = GamesExtractorConverter(self.status, self.game_prop, self.download_path)
+                game_names_to_scrape = self.gameExtractorConverter.move_game()
+                logger.info(f"{self.game_prop.name} has been moved successfully")
+                
+                # Update status for scraping
+                self.status["state"] = "scraping"
+                self.status["current_operation"] = "Scraping Cover Images"
+                
+                scrapper = ScreenScraper()
+                for name in game_names_to_scrape:
+                    message = scrapper.scrape_rom(self.game_prop.image_url, name, self.game_prop.platform_id)
+                    logger.info(message)
+                
+                # Mark as completed
+                self.status["state"] = "completed"
+                self.status["current_operation"] = ""
+
         except Exception as e:
             logger.error(f"Download failed: {e}")
-            self.download_progress = -1  # Indicate error
-            
+            self.status["state"] = "error"
+            self.status["error_message"] = str(e)
+        
+        finally:
+            shutil.rmtree(self.download_path)
+        
+        
     def cancel(self):
-        """
-        Cancel the ongoing download
-        """
-        if self.is_downloading:
+        """Cancel the ongoing download"""
+        self.status['state'] = "cancelling"
+        if self.gameExtractorConverter is not None and self.gameExtractorConverter.process is not None:
+            self.gameExtractorConverter.process.terminate()
+            self.gameExtractorConverter.process.wait()
+        
+        if self.download_thread:
             self.cancel_download.set()
             if self.download_thread:
                 self.download_thread.join()
-            
-            # Remove partial download file if exists
-            if os.path.exists(self.download_path):
-                os.remove(self.download_path)
+        
+        # Remove partial download file if exists
+        if self.status["state"] != "queued" and os.path.exists(self.download_path):
+            shutil.rmtree(self.download_path)
+
+        # Remove from the list of all managers
+        if self in DownloadManager._all_managers:
+            DownloadManager._all_managers.remove(self)
+                
+        # Update queue positions for remaining downloads
+        self._update_queue_positions()
 
     @staticmethod
     def format_size(size_bytes):
@@ -276,24 +279,86 @@ class DownloadManager:
             size_bytes /= 1024.0
         return f"{size_bytes:.2f} TB"
 
-    def get_game_size(self):
+    @staticmethod
+    def get_disk_space():
         """
-        Pre-fetch the game size without starting the download
+        Get disk space information for the given path
         
-        :return: Size in bytes, or 0 if size cannot be determined
+        :param path: Path to check disk space
+        :return: Tuple of (total_space, free_space) in bytes
         """
+        try:
+            if os.name == 'nt':  # Windows
+                import ctypes
+                free_bytes = ctypes.c_ulonglong(0)
+                total_bytes = ctypes.c_ulonglong(0)
+                ctypes.windll.kernel32.GetDiskFreeSpaceExW(
+                    ctypes.c_wchar_p(os.path.dirname(Config.DOWNLOAD_DIR)),
+                    None,
+                    ctypes.pointer(total_bytes),
+                    ctypes.pointer(free_bytes)
+                )
+                return total_bytes.value, free_bytes.value
+            else:  # Unix/Linux/macOS
+                st = os.statvfs(os.path.dirname(Config.DOWNLOAD_DIR))
+                total = st.f_blocks * st.f_frsize
+                free = st.f_bavail * st.f_frsize
+                return total, free
+        except Exception as e:
+            logger.error(f"Error getting disk space: {e}")
+            return 0, 0
+
+    def get_game_size_async(self):
+        """
+        Start asynchronous game size check
+        """
+        if self.size_check_thread and self.size_check_thread.is_alive():
+            return
+            
+        self.size_check_complete.clear()
+        self.size_check_error = None
+        self.size_check_thread = threading.Thread(target=self._size_check_worker)
+        self.size_check_thread.daemon = True
+        self.size_check_thread.start()
+
+    def _size_check_worker(self):
+        """Background worker for checking game size"""
         try:
             download_url = self._get_download_url()
             if not download_url:
-                return 0
+                self.size_check_error = "Could not get download URL"
+                return
             
             # Make a HEAD request to get content length
-            response = requests.head(download_url, timeout=10, allow_redirects=True)
+            response = self.session.head(download_url, timeout=10, allow_redirects=True)
             if response.status_code == 200:
-                size = int(response.headers.get('content-length', 0))
-                self.total_size = size  # Store for later use
-                return size
-            return 0
+                self.status["total_size"] = int(response.headers.get('content-length', 0))
+            else:
+                self.size_check_error = f"HTTP error: {response.status_code}"
         except Exception as e:
             logger.error(f"Error getting game size: {e}")
-            return 0 
+            self.size_check_error = str(e)
+        finally:
+            self.size_check_complete.set()
+
+    def wait_for_size(self, timeout=None):
+        """
+        Wait for size check to complete
+        
+        :param timeout: Maximum time to wait in seconds
+        :return: True if size check completed successfully, False otherwise
+        """
+        if not self.size_check_thread:
+            return False
+            
+        self.size_check_complete.wait(timeout)
+        return not bool(self.size_check_error)
+    
+    @classmethod
+    def get_active_download_count(cls):
+        """
+        Get the number of active downloads
+        
+        :return: Number of active downloads
+        """
+        return sum(1 for m in cls._all_managers if m.status["state"] in ["downloading", "processing", "scraping"])

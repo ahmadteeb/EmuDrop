@@ -9,19 +9,17 @@ from typing import Dict, Optional, List, Any, Tuple
 import ctypes
 import os
 import math
+import threading
 from dataclasses import dataclass
 from contextlib import contextmanager
 
 # Third-party imports
 import sdl2
-import sdl2.ext
 import sdl2.sdlttf
 import sdl2.sdlimage
 
 # Local imports
 from utils.config import Config
-from data.categories import CategoryManager
-from data.games import GameManager
 from utils.logger import logger
 from utils.texture_manager import TextureManager
 from utils.download_manager import DownloadManager
@@ -30,10 +28,12 @@ from utils.alert_manager import AlertManager
 from ui.loading_screen import LoadingScreen
 from ui.confirmation_dialog import ConfirmationDialog
 from ui.download_view import DownloadView
-from ui.categories_view import CategoriesView
+from ui.platforms_view import platformsView
 from ui.games_view import GamesView
 from ui.keyboard_view import KeyboardView
 from ui.alert_dialog import AlertDialog
+from ui.sources_view import SourcesView
+from data.database import Database
 
 class SDLError(Exception):
     """Custom exception for SDL-related errors."""
@@ -42,7 +42,7 @@ class SDLError(Exception):
 @dataclass
 class ViewState:
     """Class to hold view-related state"""
-    mode: str = 'categories'
+    mode: str = 'platforms'
     previous_mode: Optional[str] = None
     showing_confirmation: bool = False
     showing_keyboard: bool = False
@@ -52,11 +52,13 @@ class ViewState:
 @dataclass
 class NavigationState:
     """Class to hold navigation-related state"""
-    category_page: int = 0
+    platform_page: int = 0
     game_page: int = 0
-    selected_category: int = 0
+    selected_platform: int = 0
     selected_game: int = 0
     keyboard_selected_key: int = 0
+    source_page: int = 0
+    selected_source: int = 0
 
 class GameDownloaderApp:
     """
@@ -69,10 +71,6 @@ class GameDownloaderApp:
     - Game downloading and status tracking
     - UI rendering and state management
     """
-
-    # Class variable to store the singleton instance
-    instance = None
-
     def __init__(self) -> None:
         """
         Initialize the application.
@@ -98,7 +96,7 @@ class GameDownloaderApp:
             self.loading_screen = LoadingScreen(
                 self.renderer, 
                 Config.SCREEN_WIDTH, 
-                Config.SCREEN_HEIGHT
+                Config.SCREEN_HEIGHT,
             )
             
             # Initialize views
@@ -107,16 +105,25 @@ class GameDownloaderApp:
             # Initialize states
             self.view_state = ViewState()
             self.nav_state = NavigationState()
-            self.active_downloads: Dict[str, Dict[str, Any]] = {}
+            self.download_manager = None
+            self.downloads: Dict[str, Dict[str, Any]] = {}
             self.game_hold_timer: int = 0
             self.is_image_loaded: bool = False
             self.last_selected_game: int = -1
             self.search_text: str = ""
-            self.filtered_games: List[Dict[str, Any]] = []
             self.selected_download: Optional[str] = None  # Track selected download in download view
+            self.scroll_offset: int = 0  # Track scroll position in download view
+            
+            self.database = Database()
+            
+            # Cache for platforms
+            self.cached_platforms = None
+            self.cached_games = {}  # Dictionary to cache games by platform_id and source_id
+            self.cached_sources = {}
             
             # Initialize alert manager
-            AlertManager.get_instance().set_app(self)
+            self.alert_manager = AlertManager.get_instance()
+            self.alert_manager.set_app(self)
             
             # Initialize joystick if available
             self._initialize_joystick()
@@ -166,18 +173,26 @@ class GameDownloaderApp:
     def _create_window(self) -> sdl2.SDL_Window:
         """Create the application window."""
         with self._sdl_error_context("Window creation"):
+            # Get the display mode of the primary display
+            display_mode = sdl2.SDL_DisplayMode()
+            if sdl2.SDL_GetCurrentDisplayMode(0, ctypes.byref(display_mode)) != 0:
+                raise SDLError(sdl2.SDL_GetError().decode('utf-8'))
+            
+            # Update the configuration with the new screen size
+            Config.update_screen_size(display_mode.w, display_mode.h)
+            
             window = sdl2.SDL_CreateWindow(
-                b"Game Downloader", 
+                Config.APP_NAME.encode('utf-8'), 
                 sdl2.SDL_WINDOWPOS_CENTERED, 
                 sdl2.SDL_WINDOWPOS_CENTERED, 
-                Config.SCREEN_WIDTH, 
-                Config.SCREEN_HEIGHT, 
-                sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+                display_mode.w, 
+                display_mode.h, 
+                sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_ALLOW_HIGHDPI | sdl2.SDL_WINDOW_RESIZABLE
             )
             if not window:
                 raise SDLError(sdl2.SDL_GetError().decode('utf-8'))
             
-        logger.info("Window created successfully")
+        logger.info(f"Window created successfully with dimensions: {display_mode.w}x{display_mode.h}")
         return window
 
     def _create_renderer(self) -> sdl2.SDL_Renderer:
@@ -220,18 +235,40 @@ class GameDownloaderApp:
             return font
 
     def _initialize_views(self) -> None:
-        """Initialize all UI views with required dependencies."""
-        try:
-            self.categories_view = CategoriesView(self.renderer, self.font, self.texture_manager)
-            self.games_view = GamesView(self.renderer, self.font, self.texture_manager)
-            self.keyboard_view = KeyboardView(self.renderer, self.font, self.texture_manager)
-            self.confirmation_dialog = ConfirmationDialog(self.renderer, self.font, self.texture_manager)
-            self.download_view = DownloadView(self.renderer, self.font, self.texture_manager)
-            self.alert_dialog = AlertDialog(self.renderer, self.font, self.texture_manager)
-            logger.info("All views initialized successfully")
-        except Exception as e:
-            logger.error("Failed to initialize views", exc_info=True)
-            raise RuntimeError(f"View initialization failed: {str(e)}")
+        """Initialize or reinitialize all views with current screen dimensions."""
+        # Share the font with all views
+        shared_font = self.font
+        
+        self.platforms_view = platformsView(self.renderer, shared_font)
+        self.platforms_view.set_texture_manager(self.texture_manager)
+        
+        self.games_view = GamesView(self.renderer, shared_font)
+        self.games_view.set_texture_manager(self.texture_manager)
+        
+        self.download_view = DownloadView(self.renderer, shared_font)
+        self.download_view.set_texture_manager(self.texture_manager)
+        
+        self.sources_view = SourcesView(self.renderer, shared_font)
+        self.sources_view.set_texture_manager(self.texture_manager)
+        
+        self.keyboard_view = KeyboardView(self.renderer, shared_font)
+        self.keyboard_view.set_texture_manager(self.texture_manager)
+        
+        self.confirmation_dialog = ConfirmationDialog(self.renderer, shared_font)
+        self.confirmation_dialog.set_texture_manager(self.texture_manager)
+        
+        self.alert_dialog = AlertDialog(self.renderer, shared_font)
+        self.alert_dialog.set_texture_manager(self.texture_manager)
+        
+        self.loading_screen = LoadingScreen(
+            self.renderer,
+            Config.SCREEN_WIDTH,
+            Config.SCREEN_HEIGHT,
+            self.font
+        )
+        self.loading_screen.set_texture_manager(self.texture_manager)
+        
+        logger.info("Views initialized with current screen dimensions")
 
     def _initialize_joystick(self) -> None:
         """Initialize joystick if available."""
@@ -307,70 +344,77 @@ class GameDownloaderApp:
         while sdl2.SDL_PollEvent(ctypes.byref(event)) != 0:
             if event.type == sdl2.SDL_QUIT:
                 return False
-                
+            elif event.type == sdl2.SDL_WINDOWEVENT:
+                self._handle_window_event(event)
             elif event.type == sdl2.SDL_KEYDOWN:
-                try:
-                    if not self._handle_physical_keyboard(event.key.keysym.sym):
-                        return False
-                except Exception as e:
-                    logger.error(f"Error handling keyboard input: {str(e)}", exc_info=True)
-                    
+                if not self._handle_input_event(event.key.keysym.sym):
+                    return False
             elif event.type == sdl2.SDL_JOYBUTTONDOWN:
-                try:
-                    if not self._handle_controller_button(event.jbutton.button):
-                        return False
-                except Exception as e:
-                    logger.error(f"Error handling controller input: {str(e)}", exc_info=True)
-                    
+                if not self._handle_controller_button(event.jbutton.button):
+                    return False
             elif event.type == sdl2.SDL_JOYHATMOTION:
-                try:
-                    if not self._handle_d_pad_controller_button(event.jhat.value):
-                        return False
-                except Exception as e:
-                    logger.error(f"Error handling d-pad input: {str(e)}", exc_info=True)
-                    
+                if not self._handle_d_pad_controller_button(event.jhat.value):
+                    return False
         return True
+
+    def _handle_window_event(self, event) -> None:
+        """Handle window events like resize."""
+        if event.window.event == sdl2.SDL_WINDOWEVENT_RESIZED:
+            width = event.window.data1
+            height = event.window.data2
+            Config.update_screen_size(width, height)
+            # Reinitialize views with new dimensions
+            self._initialize_views()
+            logger.info(f"Window resized to: {width}x{height}")
 
     def _update_downloads(self) -> None:
         """Update status of active downloads."""
         try:
-            # Update each active download
             completed_downloads = []
+            active_download_count = DownloadManager.get_active_download_count()
             
-            for game_name, download_info in self.active_downloads.items():
+            # First pass: identify completed downloads
+            for game_name, download_info in self.downloads.items():
                 if 'manager' not in download_info:
                     continue
                     
                 manager = download_info['manager']
-                
-                # Update download progress
-                if manager.is_downloading:  # This is a property
-                    download_info.update({
-                        'status': 'downloading',
-                        'progress': manager.download_progress,
-                        'speed': manager.download_speed,
-                        'current_size': manager.current_size,
-                        'total_size': manager.total_size,
-                        'eta': 0 if manager.download_speed == 0 else (manager.total_size - manager.current_size) / manager.download_speed
-                    })
-                elif manager.is_extracting:  # check for extraction
-                    download_info['status'] = 'extracting'
-                elif manager.is_scrapping: # check for scrapping
-                    download_info['status'] = 'scrapping'
-                elif manager.download_progress == 100:  # Check for completion
-                    download_info['status'] = 'complete'
+                if manager.status["state"] == "completed":
                     completed_downloads.append(game_name)
-                elif manager.download_progress == -1:  # Check for error
-                    download_info['status'] = 'error'
-                    completed_downloads.append(game_name)
-                elif manager.cancel_download.is_set():  # Check for cancellation
-                    download_info['status'] = 'cancelled'
-                    completed_downloads.append(game_name)
+                    
+            # Second pass: update queue positions and start queued downloads if possible
+            queued_downloads = sorted(
+                [(name, info) for name, info in self.downloads.items() 
+                 if info.get('manager') and info['manager'].status["state"] == "queued"],
+                key=lambda x: x[1]['manager'].status["queue_position"]
+            )
+            
+            # Update queue positions
+            for position, (name, info) in enumerate(queued_downloads):
+                info['manager'].status["queue_position"] = position + 1
+            
+            # Start queued downloads if we have capacity
+            while active_download_count < Config.MAX_CONCURRENT_DOWNLOADS and queued_downloads:
+                game_name, download_info = queued_downloads.pop(0)
+                manager = download_info['manager']
+                if manager.status["state"] == "queued":
+                    manager.start_download()
+                    active_download_count += 1
+                    logger.info(f"Starting queued download: {game_name}")
                     
             # Remove completed downloads
             for game_name in completed_downloads:
-                del self.active_downloads[game_name]
+                del self.downloads[game_name]
                 
+                # Update selected download if the completed one was selected
+                if game_name == self.selected_download:
+                    remaining_downloads = list(self.downloads.keys())
+                    if remaining_downloads:
+                        self.selected_download = remaining_downloads[0]
+                    else:
+                        self.selected_download = None
+                        self.scroll_offset = 0
+                        
         except Exception as e:
             logger.error(f"Error updating downloads: {str(e)}", exc_info=True)
 
@@ -379,7 +423,7 @@ class GameDownloaderApp:
         try:
             loading_stages = [
                 ("Initializing SDL", 0.1),
-                ("Loading Categories", 0.3),
+                ("Loading platforms", 0.3),
                 ("Loading Game Data", 0.5),
                 ("Preparing Textures", 0.8),
                 ("Ready", 1.0)
@@ -415,9 +459,11 @@ class GameDownloaderApp:
             Config.CONTROLLER_BUTTON_A: sdl2.SDLK_RETURN,
             Config.CONTROLLER_BUTTON_B: sdl2.SDLK_BACKSPACE,
             Config.CONTROLLER_BUTTON_X: sdl2.SDLK_d,
+            Config.CONTROLLER_BUTTON_SELECT: sdl2.SDLK_s,
+            Config.CONTROLLER_BUTTON_START: sdl2.SDLK_p,
             Config.CONTROLLER_BUTTON_Y: sdl2.SDLK_SPACE,
-            Config.CONTROLLER_BUTTON_L: sdl2.SDLK_PAGEUP,
-            Config.CONTROLLER_BUTTON_R: sdl2.SDLK_PAGEDOWN
+            Config.CONTROLLER_BUTTON_L: sdl2.SDLK_PAGEDOWN,
+            Config.CONTROLLER_BUTTON_R: sdl2.SDLK_PAGEUP
         }
         
         if button in button_map:
@@ -425,29 +471,18 @@ class GameDownloaderApp:
         return True
 
     def _handle_d_pad_controller_button(self, button):
-        # Map D-pad buttons to keyboard events
-        d_pad_map = {
+        # Map controller buttons to keyboard events
+        button_map = {
             Config.CONTROLLER_BUTTON_UP: sdl2.SDLK_UP,
             Config.CONTROLLER_BUTTON_DOWN: sdl2.SDLK_DOWN,
             Config.CONTROLLER_BUTTON_LEFT: sdl2.SDLK_LEFT,
             Config.CONTROLLER_BUTTON_RIGHT: sdl2.SDLK_RIGHT
         }
         
-        if button in d_pad_map:
-            return self._handle_input_event(d_pad_map[button])
+        if button in button_map:
+            return self._handle_input_event(button_map[button])
         return True
-
-    def _handle_physical_keyboard(self, key):
-        """Handle physical keyboard inputs
-        
-        Args:
-            key: SDL keyboard key code
-            
-        Returns:
-            bool: False if application should exit, True otherwise
-        """        
-        return self._handle_input_event(key)
-
+    
     def _handle_input_event(self, key: int) -> bool:
         """Handle keyboard and controller input events.
         
@@ -457,12 +492,16 @@ class GameDownloaderApp:
         Returns:
             bool: False if application should exit, True otherwise.
         """
-        alert_manager = AlertManager.get_instance()
         
         # Handle alert dismissal first
-        if alert_manager.is_showing():
+        if self.alert_manager.is_showing():
             if key in [sdl2.SDLK_RETURN, sdl2.SDLK_BACKSPACE, Config.CONTROLLER_BUTTON_A, Config.CONTROLLER_BUTTON_B]:
-                alert_manager.hide_alert()
+                self.alert_manager.hide_alert()
+            return True
+        
+        # Handle pause/resume for downloads
+        if key == sdl2.SDLK_p and self.view_state.mode == 'download_status':
+            self._handle_pause_resume()
             return True
         
         # Handle other input states
@@ -478,35 +517,54 @@ class GameDownloaderApp:
         if key == sdl2.SDLK_LEFT or key == sdl2.SDLK_RIGHT:
             self.view_state.confirmation_selected = not self.view_state.confirmation_selected
         elif key == sdl2.SDLK_RETURN:
+            if self.view_state.confirmation_type == 'exit' and self.view_state.confirmation_selected:
+                return False
             self._handle_ok_button()
         elif key == sdl2.SDLK_BACKSPACE:
             self.view_state.showing_confirmation = False
-            self.view_state.confirmation_type = None
             self.view_state.confirmation_selected = False
         return True
 
     def _handle_onscreen_keyboard_input(self, key):
         """Handle input when on-screen keyboard is showing"""
         current_row, current_pos = self.keyboard_view.get_keyboard_position(self.nav_state.keyboard_selected_key)
+        current_row_keys = self.keyboard_view.keyboard_layout[current_row]
+        row_length = len(current_row_keys)
         
         # Handle navigation
-        if key == sdl2.SDLK_LEFT and current_pos > 0:
-            self.nav_state.keyboard_selected_key -= 1
-        elif key == sdl2.SDLK_RIGHT and current_pos < len(self.keyboard_view.keyboard_layout[current_row]) - 1:
-            self.nav_state.keyboard_selected_key += 1
+        if key == sdl2.SDLK_LEFT:
+            # Wrap around to the end of the row when going left from the first position
+            new_pos = (current_pos - 1) % row_length
+            self.nav_state.keyboard_selected_key = self.keyboard_view.get_key_index(current_row, new_pos)
+        elif key == sdl2.SDLK_RIGHT:
+            # Wrap around to the start of the row when going right from the last position
+            new_pos = (current_pos + 1) % row_length
+            self.nav_state.keyboard_selected_key = self.keyboard_view.get_key_index(current_row, new_pos)
         elif key == sdl2.SDLK_UP and current_row > 0:
-            prev_row = self.keyboard_view.keyboard_layout[current_row - 1]
-            new_pos = min(current_pos, len(prev_row) - 1)
-            self.nav_state.keyboard_selected_key -= len(self.keyboard_view.keyboard_layout[current_row])
-            self.nav_state.keyboard_selected_key += new_pos - current_pos
+            # Move up to the previous row, maintaining relative position
+            prev_row = current_row - 1
+            prev_row_length = len(self.keyboard_view.keyboard_layout[prev_row])
+            # Calculate proportional position in the new row
+            relative_pos = int((current_pos / row_length) * prev_row_length)
+            self.nav_state.keyboard_selected_key = self.keyboard_view.get_key_index(prev_row, relative_pos)
         elif key == sdl2.SDLK_DOWN and current_row < len(self.keyboard_view.keyboard_layout) - 1:
-            next_row = self.keyboard_view.keyboard_layout[current_row + 1]
-            new_pos = min(current_pos, len(next_row) - 1)
-            self.nav_state.keyboard_selected_key += len(self.keyboard_view.keyboard_layout[current_row])
-            self.nav_state.keyboard_selected_key += new_pos - current_pos
+            # Move down to the next row, maintaining relative position
+            next_row = current_row + 1
+            next_row_length = len(self.keyboard_view.keyboard_layout[next_row])
+            # Calculate proportional position in the new row
+            relative_pos = int((current_pos / row_length) * next_row_length)
+            self.nav_state.keyboard_selected_key = self.keyboard_view.get_key_index(next_row, relative_pos)
+        
+        elif key == sdl2.SDLK_BACKSPACE:
+            if self.search_text:
+                    self.search_text = self.search_text[:-1]
+                    
+        elif key == sdl2.SDLK_s:
+            self.view_state.showing_keyboard = False
+        
         elif key == sdl2.SDLK_RETURN:
             # Handle key selection
-            selected_key = self.keyboard_view.keyboard_layout[current_row][current_pos]
+            selected_key = current_row_keys[current_pos]
             
             if selected_key == '<':
                 if self.search_text:
@@ -515,545 +573,629 @@ class GameDownloaderApp:
                 self.view_state.showing_keyboard = False
             elif selected_key == 'Space':
                 self.search_text += ' '
+            elif selected_key == 'Clear':
+                self.search_text = ""
             else:
                 self.search_text += selected_key
             
-            self._update_filtered_games()
+            # Reset selection to first item when search changes
+            self.nav_state.selected_game = 0
+            self.nav_state.game_page = 0
         return True
 
     def _handle_normal_input(self, key):
-        """Handle input in normal navigation mode"""
-        # Handle D key for downloads view
+        """Handle input in normal navigation mode.
+        
+        Args:
+            key: SDL key code for the pressed key
+            
+        Returns:
+            bool: True to continue processing, False to exit
+        """
+        # Handle view-specific navigation keys
+        if key in [sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT]:
+            self._handle_navigation(key)
+            return True
+            
+        # Handle page navigation
+        if key == sdl2.SDLK_PAGEUP:
+            self._change_page(1)
+            return True
+            
+        if key == sdl2.SDLK_PAGEDOWN:
+            self._change_page(-1)
+            return True
+            
+        # Handle view switching
         if key == sdl2.SDLK_d and self.view_state.mode != 'download_status':
-            self.view_state.previous_mode = self.view_state.mode
-            self.view_state.mode = 'download_status'
-            if self.active_downloads:
-                self.selected_download = next(iter(self.active_downloads))
-       
-        # Handle Space for keyboard toggle
-        elif key == sdl2.SDLK_SPACE and self.view_state.mode == 'games' and not self.view_state.showing_keyboard:
+            self._switch_view('download_status')
+            return True
+            
+        if key == sdl2.SDLK_s and self.view_state.mode == 'games':
+            self._switch_view('sources')
+            return True
+            
+        # Handle keyboard toggle
+        if key == sdl2.SDLK_SPACE and self.view_state.mode == 'games' and not self.view_state.showing_keyboard:
             self.view_state.showing_keyboard = True
             self.nav_state.keyboard_selected_key = 0
-                    
-        elif key == sdl2.SDLK_RETURN:
+            return True
+            
+        # Handle confirmation and selection
+        if key == sdl2.SDLK_RETURN:
             if self.view_state.mode == 'download_status':
-                if self.selected_download and self.selected_download in self.active_downloads:
-                    self.view_state.showing_confirmation = True
-                    self.view_state.confirmation_selected = False
-                    self.view_state.confirmation_type = 'cancel'
+                if self.selected_download and self.selected_download in self.downloads:
+                    self._show_confirmation('cancel')
             elif self.view_state.mode == 'games':
-                # Get the current category ID and game
-                current_category_id = CategoryManager.get_categories()[self.nav_state.selected_category]['id']
-                games_list = self.filtered_games if self.filtered_games else GameManager.get_games_by_category(current_category_id)
-                
-                if games_list and 0 <= self.nav_state.selected_game < len(games_list):
-                    game = games_list[self.nav_state.selected_game]
-                    # Create temporary download manager to get size
-                    download_manager = DownloadManager(
-                        id=current_category_id,
-                        game_name=game['name'],
-                        game_url=game.get('game_url', ''),
-                    )
-                    
-                    # Get game size
-                    game_size = download_manager.get_game_size()
-                    game['size'] = game_size  # Store size for later use
-                    
-                    self.game_to_download = game
-                    self.view_state.showing_confirmation = True
-                    self.view_state.confirmation_selected = False
-                    self.view_state.confirmation_type = 'download'
+                self._handle_game_selection()
             else:
                 self._handle_ok_button()
-                
-        elif key == sdl2.SDLK_BACKSPACE:
+            return True
+            
+        # Handle back navigation
+        if key == sdl2.SDLK_BACKSPACE:
             return self._handle_back_button()
             
-        elif self.view_state.mode == "categories":
-            if key in [sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT]:
-                self._handle_categories_navigation(key)
-                
-        elif self.view_state.mode == "games" and not self.view_state.showing_keyboard:
-            if key == sdl2.SDLK_UP:
-                self._navigate_games(-1)
-            elif key == sdl2.SDLK_DOWN:
-                self._navigate_games(1)
-                
-        elif self.view_state.mode == "download_status":
-            if key in [sdl2.SDLK_UP, sdl2.SDLK_DOWN]:
-                downloads = list(self.active_downloads.keys())
-                if not downloads:
-                    return True
-                
-                if self.selected_download is None:
-                    self.selected_download = downloads[0]
-                else:
-                    current_idx = downloads.index(self.selected_download)
-                    if key == sdl2.SDLK_UP:
-                        new_idx = (current_idx - 1) if current_idx > 0 else len(downloads) - 1
-                    else:
-                        new_idx = (current_idx + 1) if current_idx < len(downloads) - 1 else 0
-                    self.selected_download = downloads[new_idx]
-                    
         return True
-
-    def _handle_categories_navigation(self, key):
-        """Handle navigation in categories grid view"""
-        total_categories = len(CategoryManager.get_categories())
-        if total_categories == 0:
-            return
-
-        cards_per_row = 3
-        cards_per_page = 9
-        current_row = (self.nav_state.selected_category % cards_per_page) // cards_per_row
-        current_col = (self.nav_state.selected_category % cards_per_page) % cards_per_row
-        current_page = self.nav_state.selected_category // cards_per_page
-        total_pages = (total_categories + cards_per_page - 1) // cards_per_page
-
-        if key == sdl2.SDLK_UP:
-            # Move up within the current page only
-            if current_row > 0:
-                new_index = (current_page * cards_per_page) + ((current_row - 1) * cards_per_row) + current_col
-                if new_index < total_categories:
-                    self.nav_state.selected_category = new_index
-
-        elif key == sdl2.SDLK_DOWN:
-            # Move down within the current page only
-            if current_row < 2:  # 2 is the last row (0-based)
-                new_index = (current_page * cards_per_page) + ((current_row + 1) * cards_per_row) + current_col
-                if new_index < total_categories:
-                    self.nav_state.selected_category = new_index
-
-        elif key == sdl2.SDLK_LEFT:
-            # Move left within the current page
-            if current_col > 0:
-                new_index = (current_page * cards_per_page) + (current_row * cards_per_row) + (current_col - 1)
-                if new_index < total_categories:
-                    self.nav_state.selected_category = new_index
-            # Move to previous page if at leftmost of current page
-            elif current_page > 0:
-                new_page = current_page - 1
-                new_col = 2  # Rightmost column of previous page
-                new_index = (new_page * cards_per_page) + (current_row * cards_per_row) + new_col
-                # If position doesn't exist in previous page, move to last valid item
-                if new_index >= total_categories:
-                    new_index = total_categories - 1
-                self.nav_state.selected_category = new_index
-                self.nav_state.category_page = new_page
-
-        elif key == sdl2.SDLK_RIGHT:
-            # Move right within the current page
-            if current_col < 2:  # 2 is the last column (0-based)
-                new_index = (current_page * cards_per_page) + (current_row * cards_per_row) + (current_col + 1)
-                if new_index < total_categories:
-                    self.nav_state.selected_category = new_index
-            # Move to next page if at rightmost of current page
-            elif current_page < total_pages - 1:
-                new_page = current_page + 1
-                new_col = 0  # Leftmost column of next page
-                new_index = (new_page * cards_per_page) + (current_row * cards_per_row) + new_col
-                if new_index < total_categories:
-                    self.nav_state.selected_category = new_index
-                    self.nav_state.category_page = new_page
-
-    def _handle_ok_button(self):
-        """Handle A button press"""
-        if self.view_state.showing_confirmation:
-            if self.view_state.confirmation_type == 'download':
-                if self.view_state.confirmation_selected:  # Yes selected
-                    # Start the download
-                    self._start_download(self.game_to_download)
-                    # Only switch to download status if user presses back or selects from menu
-                    self.view_state.showing_confirmation = False
-                    self.view_state.confirmation_type = None
-                    self.view_state.confirmation_selected = False
-                    # Stay in games view to allow selecting more games
-                    return
-                self.view_state.showing_confirmation = False
-                self.view_state.confirmation_type = None
-                self.view_state.confirmation_selected = False
-            elif self.view_state.confirmation_type == 'cancel':
-                if self.view_state.confirmation_selected:  # Yes selected
-                    # Cancel only the selected download
-                    if self.selected_download and self.selected_download in self.active_downloads:
-                        # Get the list of downloads and find current index
-                        downloads = list(self.active_downloads.keys())
-                        current_idx = downloads.index(self.selected_download)
-                        
-                        # Cancel the selected download
-                        download_info = self.active_downloads[self.selected_download]
-                        if 'manager' in download_info:
-                            download_info['manager'].cancel()
-                        del self.active_downloads[self.selected_download]
-                        
-                        # Select the previous download (or last one if at top)
-                        if self.active_downloads:  # If there are still downloads
-                            downloads = list(self.active_downloads.keys())  # Get updated list
-                            if current_idx > 0:
-                                # Select the previous download
-                                self.selected_download = downloads[current_idx - 1]
-                            else:
-                                # If we were at the top, select the last download
-                                self.selected_download = downloads[-1]
-                        else:
-                            # No more downloads, go back to previous view
-                            self.selected_download = None
-                            self.view_state.mode = self.view_state.previous_mode or 'games'
-                self.view_state.showing_confirmation = False
-            return
-
-        if self.view_state.mode == 'categories':
-            # Reset search and filtered games when entering a new category
-            self.search_text = ""
-            self.filtered_games = []
-            self.view_state.showing_keyboard = False
-            
-            self.view_state.mode = 'games'
-            self.nav_state.game_page = 0
-            self.nav_state.selected_game = 0
-            
-            # Reset image loading state
-            self.game_hold_timer = 0
-            self.is_image_loaded = False
-            self.last_selected_game = -1
-        elif self.view_state.mode == 'games':
-            self.view_state.previous_mode = self.view_state.mode
-            # Get the appropriate game list and selected game
-            if self.filtered_games:
-                selected_index = self.nav_state.selected_game
-                if 0 <= selected_index < len(self.filtered_games):
-                    self.view_state.confirmation_type = 'download'
-                    self.view_state.confirmation_selected = False  # Default to "No"
-                    self._show_download_confirmation()
-            else:
-                self._show_download_confirmation()
-        elif self.view_state.mode == 'download_status':
-            # If there are no active downloads, go back to previous view
-            if not self.active_downloads:
-                self.view_state.mode = self.view_state.previous_mode or 'games'
-
-    def _handle_back_button(self):
-        """Handle B button press"""
-        if self.view_state.showing_confirmation:
-            # Hide confirmation dialog without action
-            self.view_state.showing_confirmation = False
-            self.view_state.confirmation_type = None
-            self.view_state.confirmation_selected = False
-            return True
-
-        if self.view_state.mode == 'download_status':
-            # Simply go back to previous view
-            self.view_state.mode = self.view_state.previous_mode or 'games'
-            self.selected_download = None  # Reset selected download when leaving view
-        elif self.view_state.mode == 'games':
-            self.view_state.mode = 'categories'
-            self.nav_state.game_page = 0
-            self.nav_state.selected_game = 0
-        elif self.view_state.mode == 'categories':
-            # Exit the application when in categories view
-            return False
-        return True
-
-    def _navigate_games(self, direction):
-        """
-        Navigate through games with improved logic
-        
-        :param direction: Navigation direction (-1 for up, 1 for down)
-        """
-        total_games = len(self.filtered_games if self.filtered_games else GameManager.get_games_by_category(CategoryManager.get_categories()[self.nav_state.selected_category]['id']))
-        total_game_pages = GameManager.get_total_pages(Config.GAMES_PER_PAGE)
-        
-        # Determine the current page and local index within the page
-        current_page = self.nav_state.selected_game // Config.GAMES_PER_PAGE
-        local_index = self.nav_state.selected_game % Config.GAMES_PER_PAGE
-        
-        if direction > 0:  # Move down
-            # If not at the last game
-            if self.nav_state.selected_game < total_games - 1:
-                # If at the last item of current page, move to next page
-                if local_index == Config.GAMES_PER_PAGE - 1 and current_page < total_game_pages - 1:
-                    self.nav_state.game_page += 1
-                    self.nav_state.selected_game = current_page * Config.GAMES_PER_PAGE + Config.GAMES_PER_PAGE
-                else:
-                    # Move to next game on the same page
-                    self.nav_state.selected_game += 1
-        else:  # Move up
-            # If not at the first game
-            if self.nav_state.selected_game > 0:
-                # If at the first item of current page, move to previous page
-                if local_index == 0 and current_page > 0:
-                    self.nav_state.game_page -= 1
-                    self.nav_state.selected_game = (current_page - 1) * Config.GAMES_PER_PAGE + (Config.GAMES_PER_PAGE - 1)
-                else:
-                    # Move to previous game on the same page
-                    self.nav_state.selected_game -= 1
-
-    def _navigate_games(self, direction):
-        """Navigate through the games list
-        
-        Args:
-            direction: 1 for down, -1 for up
-        """
-        if self.filtered_games:
-            total_games = len(self.filtered_games)
-        else:
-            current_category = CategoryManager.get_categories()[self.nav_state.selected_category]
-            total_games = len(GameManager.get_games_by_category(current_category['id']))
-
-        if total_games == 0:
-            return
-
-        new_selected = self.nav_state.selected_game + direction
-        
-        # Handle wrapping around pages
-        if new_selected < 0:
-            # Go to last page, last item
-            total_pages = (total_games + Config.GAMES_PER_PAGE - 1) // Config.GAMES_PER_PAGE
-            self.nav_state.game_page = total_pages - 1
-            last_page_items = total_games % Config.GAMES_PER_PAGE
-            self.nav_state.selected_game = total_games - 1
-        elif new_selected >= total_games:
-            # Go to first page, first item
-            self.nav_state.game_page = 0
-            self.nav_state.selected_game = 0
-        else:
-            # Normal navigation within or between pages
-            new_page = new_selected // Config.GAMES_PER_PAGE
-            if new_page != self.nav_state.game_page:
-                self.nav_state.game_page = new_page
-            self.nav_state.selected_game = new_selected
 
     def _change_page(self, direction):
-        """Change the current page in the appropriate view
+        """Change the current page in the active view.
         
         Args:
-            direction: 1 for next page, -1 for previous page
+            direction: Direction to change page (1 for next, -1 for previous)
         """
-        if self.view_state.mode == "categories":
-            total_categories = len(CategoryManager.get_categories())
-            total_pages = (total_categories + Config.CARDS_PER_PAGE - 1) // Config.CARDS_PER_PAGE
-            new_page = (self.nav_state.category_page + direction) % total_pages
-            self.nav_state.category_page = new_page
-            # Update selected category
-            self.nav_state.selected_category = new_page * Config.CARDS_PER_PAGE
+        if self.view_state.mode == 'platforms':
+            if self.cached_platforms is None:
+                self.cached_platforms = self.database.get_platforms()
+            total_pages = math.ceil(len(self.cached_platforms) / Config.CARDS_PER_PAGE)
+            new_page = (self.nav_state.platform_page + direction) % total_pages
+            self.nav_state.platform_page = new_page
+            # Set selection to first item of the new page
+            self.nav_state.selected_platform = new_page * Config.CARDS_PER_PAGE
             
-        elif self.view_state.mode == "games":
-            if self.filtered_games:
-                # Handle pagination for search results
-                total_pages = (len(self.filtered_games) + Config.GAMES_PER_PAGE - 1) // Config.GAMES_PER_PAGE
-            else:
-                # Handle pagination for normal category view
-                current_category = CategoryManager.get_categories()[self.nav_state.selected_category]
-                total_pages = GameManager.get_total_game_pages(current_category['id'], Config.GAMES_PER_PAGE)
+        elif self.view_state.mode == 'games':
+            # Get the appropriate games list
+            total_games, games_list = self._get_current_games_list()
             
-            if total_pages > 0:
+            if  total_games > 0:
+                total_pages = math.ceil(total_games / Config.GAMES_PER_PAGE)
                 new_page = (self.nav_state.game_page + direction) % total_pages
                 self.nav_state.game_page = new_page
-                # Update selected game
-                self.nav_state.selected_game = new_page * Config.GAMES_PER_PAGE
-
-    def _show_download_confirmation(self):
-        """Show confirmation dialog for game download"""
-        if self.filtered_games:
-            game = self.filtered_games[self.nav_state.selected_game]
-        else:
-            category_id = CategoryManager.get_categories()[self.nav_state.selected_category]['id']
-            game = GameManager.get_game(category_id, self.nav_state.selected_game)
-        
-        if game:
-            # Check if game is already downloading
-            if game['name'] in self.active_downloads:
-                logger.warning(f"Game {game['name']} is already downloading")
-                
-                # Show alert using AlertManager
-                AlertManager.get_instance().show_warning(
-                    "Download in Progress",
-                    f"{game['name']} is already downloading!"
-                )
-                return
+                # Set selection to first item of the new page
+                self.nav_state.selected_game =  0
+                # Reset image loading state
+                self.game_hold_timer = 0
+                self.is_image_loaded = False
+                self.last_selected_game = self.nav_state.selected_game
             
-            # Create temporary download manager to get size
-            download_manager = DownloadManager(
-                id=game.get('category_id', CategoryManager.get_categories()[self.nav_state.selected_category]['id']),
-                game_name=game['name'],
-                game_url=game.get('game_url', ''),
+        elif self.view_state.mode == 'sources':
+            # Get sources from cache
+            platform_id = self._get_current_platform_id()
+            if platform_id not in self.cached_sources:
+                self.cached_sources[platform_id] = self.database.get_sources(platform_id)
+            all_sources = self.cached_sources[platform_id]
+            total_sources = len(all_sources)
+            
+            if total_sources > 0:
+                total_pages = math.ceil(total_sources / Config.CARDS_PER_PAGE)
+                new_page = (self.nav_state.source_page + direction) % total_pages
+                self.nav_state.source_page = new_page
+                # Set selection to first item of the new page
+                self.nav_state.selected_source = new_page * Config.CARDS_PER_PAGE
+
+    def _handle_navigation(self, key):
+        """Handle navigation based on current view mode.
+        
+        Args:
+            key: SDL key code for the pressed key
+        """
+        navigation_handlers = {
+            'platforms': self._handle_platforms_navigation,
+            'sources': self._handle_sources_navigation,
+            'games': self._handle_games_navigation,
+            'download_status': self._handle_download_navigation
+        }
+        
+        handler = navigation_handlers.get(self.view_state.mode)
+        if handler:
+            handler(key)
+
+    def _handle_sources_navigation(self, key):
+        """Handle navigation in sources view"""
+        try:
+            platform_id = self._get_current_platform_id()
+            if platform_id not in self.cached_sources:
+                self.cached_sources[platform_id] = self.database.get_sources(platform_id)
+                
+            total_sources = len(self.cached_sources[platform_id])
+            new_selected = self._handle_grid_navigation(
+                key,
+                total_sources,
+                self.nav_state.selected_source,
+                self.nav_state.source_page,
+                lambda page: setattr(self.nav_state, 'source_page', page)
             )
             
-            # Get game size
-            game_size = download_manager.get_game_size()
-            game['size'] = game_size  # Store size for later use
-            
-            # Store game info and show confirmation
-            self.game_to_download = game  # Store the game to download
-            self.view_state.showing_confirmation = True  # Show the confirmation dialog
-            self.view_state.confirmation_selected = False  # Default to "No"
-            self.view_state.confirmation_type = 'download'
-            
-            logger.debug(f"Showing download confirmation for game: {game['name']}")
+            if new_selected != self.nav_state.selected_source:
+                self.nav_state.selected_source = new_selected
+                self.nav_state.source_page = new_selected // Config.CARDS_PER_PAGE
+                
+        except Exception as e:
+            logger.error(f"Error handling sources navigation: {e}", exc_info=True)
 
-    def _start_download(self, game: Dict[str, Any]) -> None:
+    def _handle_platforms_navigation(self, key):
+        """Handle navigation in platforms grid view"""
+        if self.cached_platforms is None:
+            self.cached_platforms = self.database.get_platforms()
+            
+        total_platforms = len(self.cached_platforms)
+        new_selected = self._handle_grid_navigation(
+            key,
+            total_platforms,
+            self.nav_state.selected_platform,
+            self.nav_state.platform_page,
+            lambda page: setattr(self.nav_state, 'platform_page', page)
+        )
+        
+        if new_selected != self.nav_state.selected_platform:
+            self.nav_state.selected_platform = new_selected
+
+    def _handle_download_navigation(self, key):
+        """Handle navigation in download status view.
+        
+        Args:
+            key: SDL key code for the pressed key
+        """
+        if key not in [sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_PAGEUP, sdl2.SDLK_PAGEDOWN]:
+            return
+            
+        downloads = list(self.downloads.keys())
+        if not downloads:
+            return True
+            
+        if self.selected_download is None:
+            self.selected_download = downloads[0]
+            return True
+            
+        current_idx = downloads.index(self.selected_download)
+        max_scroll = max(0, len(downloads) - Config.VISIBLE_DOWNLOADS)
+        
+        if key == sdl2.SDLK_UP:
+            # Move selection up
+            if current_idx > 0:
+                new_idx = current_idx - 1
+                # Adjust scroll if needed
+                if new_idx < self.scroll_offset:
+                    self.scroll_offset = new_idx
+                self.selected_download = downloads[new_idx]
+                
+        elif key == sdl2.SDLK_DOWN:
+            # Move selection down
+            if current_idx < len(downloads) - 1:
+                new_idx = current_idx + 1
+                # Adjust scroll if needed
+                if new_idx >= self.scroll_offset + Config.VISIBLE_DOWNLOADS:
+                    self.scroll_offset = new_idx - (Config.VISIBLE_DOWNLOADS - 1)
+                self.selected_download = downloads[new_idx]
+                
+        elif key == sdl2.SDLK_PAGEUP:
+            # Move up by page size
+            new_idx = max(0, current_idx - Config.VISIBLE_DOWNLOADS)
+            self.selected_download = downloads[new_idx]
+            self.scroll_offset = max(0, new_idx - (Config.VISIBLE_DOWNLOADS - 1))
+            
+        elif key == sdl2.SDLK_PAGEDOWN:
+            # Move down by page size
+            new_idx = min(len(downloads) - 1, current_idx + Config.VISIBLE_DOWNLOADS)
+            self.selected_download = downloads[new_idx]
+            self.scroll_offset = min(max_scroll, new_idx)
+            
+        # Ensure scroll offset stays within valid range
+        self.scroll_offset = min(max_scroll, max(0, self.scroll_offset))
+        
+        return True
+
+    def _switch_view(self, new_mode: str, reset_state: bool = True):
+        """Switch to a different view mode and handle state reset.
+        
+        Args:
+            new_mode: The view mode to switch to ('platforms', 'games', 'sources', 'download_status')
+            reset_state: Whether to reset the view state
+        """
+        # Show loading screen only when transitioning from platforms to games
+        if self.view_state.mode == 'platforms' and new_mode == 'games':
+            # Start loading animation in a separate thread
+            def animate_loading():
+                while not hasattr(self, '_loading_complete'):
+                    self.loading_screen.render(0.5, "Retreiving Games List...")
+                    sdl2.SDL_RenderPresent(self.renderer)
+                    sdl2.SDL_Delay(Config.LOADING_ANIMATION_SPEED)
+            
+            # Start animation thread
+            animation_thread = threading.Thread(target=animate_loading)
+            animation_thread.daemon = True
+            animation_thread.start()
+            
+            # Signal animation thread to stop after a short delay
+            # This ensures the loading screen is visible even if games load quickly
+            sdl2.SDL_Delay(100)  # Show loading screen for at least 500ms
+            self._loading_complete = True
+            animation_thread.join()
+            delattr(self, '_loading_complete')
+        
+        self.view_state.previous_mode = self.view_state.mode
+        self.view_state.mode = new_mode
+        
+        if not reset_state:
+            return
+            
+        # Reset state based on new mode
+        if new_mode == 'download_status':
+            self.selected_download = next(iter(self.downloads)) if self.downloads else None
+        elif new_mode == 'platforms':
+            self.nav_state.selected_source = 0
+            self.nav_state.source_page = 0
+            self._reset_game_selection()
+
+    def _reset_game_selection(self) -> None:
+        """Reset all game selection state to initial values."""
+        self.nav_state.game_page = 0
+        self.nav_state.selected_game = 0
+        self.search_text = ""
+        self.view_state.showing_keyboard = False
+        self._reset_game_image_state()
+
+    def _reset_game_image_state(self) -> None:
+        """Reset only the game image loading state."""
+        self.game_hold_timer = 0
+        self.is_image_loaded = False
+        self.last_selected_game = self.nav_state.selected_game
+
+    def _handle_games_navigation(self, key):
+        """Handle navigation in games view."""
+        if self.view_state.showing_keyboard:
+            return
+            
+        if key == sdl2.SDLK_UP:
+            self._navigate_games(-1)
+        elif key == sdl2.SDLK_DOWN:
+            self._navigate_games(1)
+
+    def _handle_ok_button(self):
+        """Handle OK button press based on current view mode."""
+        if self.view_state.showing_confirmation:
+            self._handle_confirmation_ok()
+            return
+
+        ok_handlers = {
+            'sources': self._handle_source_selection,
+            'platforms': self._handle_platform_selection,
+            'games': lambda: self._show_confirmation('download'),
+            'download_status': lambda: self._switch_view(self.view_state.previous_mode or 'games') if not self.downloads else None
+        }
+        
+        handler = ok_handlers.get(self.view_state.mode)
+        if handler:
+            handler()
+
+    def _handle_back_button(self):
+        """Handle back button press and manage view transitions.
+        
+        Returns:
+            bool: False if application should exit, True otherwise
+        """
+        if self.view_state.showing_confirmation:
+            self._reset_confirmation_state()
+            return True
+
+        view_transitions = {
+            'sources': 'games',
+            'download_status': self.view_state.previous_mode,
+            'games': 'platforms',
+            'platforms': None  # Exit application
+        }
+
+        next_view = view_transitions.get(self.view_state.mode)
+        if next_view is None:
+            # Show exit confirmation instead of immediately closing
+            self._show_confirmation('exit')
+            return True
+        
+        self._switch_view(next_view)
+        if self.view_state.mode == 'download_status':
+            self.selected_download = None
+        return True
+
+    def _reset_confirmation_state(self):
+        """Reset confirmation dialog state"""
+        self.view_state.showing_confirmation = False
+        self.view_state.confirmation_type = None
+        self.view_state.confirmation_selected = False
+
+    def _handle_confirmation_ok(self):
+        """Handle OK button press in confirmation dialog"""
+        if not self.view_state.confirmation_selected:
+            self._reset_confirmation_state()
+            return
+            
+        if self.view_state.confirmation_type == 'download':
+            self._start_download()
+        elif self.view_state.confirmation_type == 'cancel':
+            self._cancel_selected_download()
+            
+        self._reset_confirmation_state()
+
+    def _start_download(self) -> None:
         """Start downloading a game.
         
         Args:
-            game: Dictionary containing game information.
+            game: Dictionary containing game information including name, game_url, and image_url.
             
         Raises:
             RuntimeError: If download initialization fails.
         """
-        try:
-            if game and game.get('game_url'):
-                # Create download manager for the game
-                download_manager = DownloadManager(
-                    id=CategoryManager.get_categories()[self.nav_state.selected_category]['id'],
-                    game_name=game['name'],
-                    game_url=game.get('game_url', ''),
-                    image_url=game.get('image_url', ''),
-                    isExtractable=CategoryManager.get_categories()[self.nav_state.selected_category]['isExtractable']
-                )
-                
-                # Set pre-fetched size if available
-                if 'size' in game:
-                    download_manager.total_size = game['size']
-                
-                # Start the download
-                download_manager.start_download()
-                
-                # Add to active downloads
-                self.active_downloads[game['name']] = {
-                    'manager': download_manager,
-                    'status': 'downloading',
-                    'progress': 0,
-                    'speed': 0,
-                    'eta': 0
-                }
-                
-                logger.info(f"Started download for game: {game['name']}")
-            else:
-                raise RuntimeError("Invalid game data for download")
-                
-        except Exception as e:
-            logger.error(f"Failed to start download for game: {str(e)}", exc_info=True)
-            raise RuntimeError(f"Download initialization failed: {str(e)}")
+        if not self.game_to_download or not self.game_to_download.get('game_url'):
+            raise RuntimeError("Invalid game data for download")
+            
+        game_name = self.game_to_download['name']
+        
+        # Check if already downloading
+        if game_name in self.downloads:
+            return
+        
+        self.download_manager.add_manager()
+        
+        # Add to active downloads
+        self.downloads[game_name] = {
+            'manager': self.download_manager,
+            'game': self.game_to_download
+        }
+        
+        # Update selected download if none selected
+        if self.selected_download is None and self.view_state.mode == 'download_status':
+            self.selected_download = game_name
+            
+        # Check if we should queue or start immediately
+        active_downloads = DownloadManager.get_active_download_count()
+        if active_downloads >= Config.MAX_CONCURRENT_DOWNLOADS:
+            # Queue the download
+            logger.info(f"Added game to download queue: {game_name}")
+        else:
+            # Start download immediately
+            self.download_manager.start_download()
+            logger.info(f"Started download for game: {game_name}")
 
-    def _update_filtered_games(self) -> None:
-        """Update the filtered games list based on search text."""
-        try:
-            # Get all games for current category
-            current_category = CategoryManager.get_categories()[self.nav_state.selected_category]
-            all_games = GameManager.get_games_by_category(current_category['id'])
+    def _cancel_selected_download(self) -> None:
+        """Cancel the currently selected download"""
+        if not self.selected_download or self.selected_download not in self.downloads:
+            return
             
-            # Filter games based on search text
-            self.filtered_games = list(filter(
-                lambda game: self.search_text.lower() in game['name'].lower(), 
-                all_games
-            ))
+        # Get download manager
+        download_info = self.downloads[self.selected_download]
+        manager = download_info.get('manager')
+        if not manager:
+            return
             
-            # Reset page and selection when search results change
-            self.nav_state.game_page = 0
-            self.nav_state.selected_game = 0
+        # Cancel download
+        manager.cancel()
             
-            logger.debug(f"Updated filtered games. Found {len(self.filtered_games)} matches")
-            
-        except Exception as e:
-            logger.error(f"Failed to update filtered games: {str(e)}", exc_info=True)
-            self.filtered_games = []
+        # Remove from active downloads
+        del self.downloads[self.selected_download]
+        
+        # Update selected download
+        remaining_downloads = list(self.downloads.keys())
+        if remaining_downloads:
+            self.selected_download = remaining_downloads[0]
+        else:
+            self.selected_download = None
+            self.scroll_offset = 0
 
-    def _render(self):
-        """Render the current application state"""
-        try:
-            # Clear the screen
-            sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.BG_DARK)
-            sdl2.SDL_RenderClear(self.renderer)
+    def _handle_source_selection(self):
+        """Handle source selection"""
+        # Only filter games if user presses enter on a source
+        if self.view_state.mode == 'sources':
+            # Clear the games cache for the new source
+            self.cached_games = {}
+            self._switch_view('games')
 
-            # Render main view based on current mode
+    def _handle_platform_selection(self):
+        """Handle platform selection"""
+        # Reset search and keyboard state
+        self.search_text = ""
+        self.view_state.showing_keyboard = False
+        
+        # Clear the games cache for the new platform
+        self.cached_games = {}
+        
+        self._switch_view('games')
+
+    def _render(self) -> None:
+        """Render the current application state."""
+        try:
+            self._clear_screen()
             self._render_main_view()
-
-            # Render overlays (confirmation dialog and alerts)
             self._render_overlays()
-
-            # Present the rendered frame
-            sdl2.SDL_RenderPresent(self.renderer)
-
+            self._present_frame()
         except Exception as e:
             logger.error(f"Error in render: {str(e)}", exc_info=True)
             raise
 
-    def _render_main_view(self):
-        """Render the main view based on current mode"""
-        if self.view_state.mode == 'categories':
-            self.categories_view.render(
-                self.nav_state.category_page,
-                self.nav_state.selected_category,
-                len(self.active_downloads)
-            )
-        elif self.view_state.mode == 'games':
-            self._render_games_view()
-        elif self.view_state.mode == 'download_status':
-            self.download_view.render(
-                self.active_downloads,
-                self.view_state.showing_confirmation,
-                self.selected_download
-            )
+    def _clear_screen(self) -> None:
+        """Clear the screen with background color."""
+        sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.BG_DARK)
+        sdl2.SDL_RenderClear(self.renderer)
 
-    def _render_games_view(self):
-        """Render the games view with optional keyboard"""
-        # Get the current category ID
-        current_category_id = CategoryManager.get_categories()[self.nav_state.selected_category]['id']
+    def _present_frame(self) -> None:
+        """Present the rendered frame."""
+        sdl2.SDL_RenderPresent(self.renderer)
+
+    def _render_main_view(self) -> None:
+        """Render the main view based on current mode."""
+        render_methods = {
+            'platforms': self._render_platforms_view,
+            'games': self._render_games_view,
+            'download_status': self._render_download_view,
+            'sources': self._render_sources_view
+        }
         
-        # Get games list based on whether we're filtering
-        games_list = (self.filtered_games if self.filtered_games 
-                     else GameManager.get_games_by_category(current_category_id))
+        render_method = render_methods.get(self.view_state.mode)
+        if render_method:
+            render_method()
+
+    def _render_platforms_view(self) -> None:
+        """Render the platforms view."""
+        if self.cached_platforms is None:
+            self.cached_platforms = self.database.get_platforms()
+            
+        self.platforms_view.render(
+            self.nav_state.platform_page,
+            self.nav_state.selected_platform,
+            self.cached_platforms,
+            len(self.downloads)
+        )
+
+    def _render_games_view(self) -> None:
+        """Render the games view with optional keyboard."""
+        # Get appropriate games list
+        total_games, games_list = self._get_current_games_list()
 
         # Render games view
         self.games_view.render(
             self.nav_state.game_page,
+            total_games,
             self.nav_state.selected_game,
             self.is_image_loaded,
-            self.search_text != "",
+            bool(self.search_text),
             games_list,
-            len(self.active_downloads)
+            len(self.downloads)
         )
         
-        # Render keyboard if showing
+        # Render keyboard if active
         if self.view_state.showing_keyboard:
             self.keyboard_view.render(
                 self.nav_state.keyboard_selected_key,
                 self.search_text
             )
 
-    def _render_overlays(self):
-        """Render overlay elements like confirmation dialogs and alerts"""
-        # Render confirmation dialog if active
+    def _get_current_games_list(self) -> Tuple[int, List[Dict[str, Any]]]:
+        """Get the current list of games based on search and filter state.
+        
+        Returns:
+            Tuple containing total games count and list of game dictionaries
+        """
+        platform_id = self._get_current_platform_id()
+        source_id = self.nav_state.selected_source
+        
+        # Otherwise get all games for the current platform and source
+        cache_key = f"{platform_id}_{source_id}_{self.search_text}_{self.nav_state.game_page}"
+        
+        if cache_key not in self.cached_games:
+            self.cached_games.clear()
+            
+            total_games, games = self.database.get_games(platform_id=platform_id, 
+                                                       source_id=source_id, 
+                                                       search_text=self.search_text,
+                                                       limit=Config.GAMES_PER_PAGE,
+                                                       offset=self.nav_state.game_page * Config.GAMES_PER_PAGE
+                                                )
+            
+            self.cached_games[cache_key] = {
+                'total_games': total_games,
+                'games': games
+            }
+            
+        return self.cached_games[cache_key]['total_games'], self.cached_games[cache_key]['games']
+
+    def _render_download_view(self) -> None:
+        """Render the download status view."""
+        self.download_view.render(
+            self.downloads,
+            self.selected_download,
+            self.scroll_offset
+        )
+
+    def _render_sources_view(self) -> None:
+        """Render the sources view."""
+        platform_id = self._get_current_platform_id()
+        if platform_id not in self.cached_sources:
+            self.cached_sources[platform_id] = self.database.get_sources(platform_id)
+            
+        self.sources_view.render(
+            self.nav_state.source_page,
+            self.nav_state.selected_source,
+            self.cached_sources[platform_id]
+        )
+
+    def _render_overlays(self) -> None:
+        """Render overlay elements like confirmation dialogs and alerts."""
         if self.view_state.showing_confirmation:
             self._render_confirmation_dialog()
 
-        # Render alert if active
-        alert_manager = AlertManager.get_instance()
-        if alert_manager.is_showing():
-            self.alert_dialog.render(
-                message=alert_manager.get_message(),
-                additional_info=alert_manager.get_additional_info()
-            )
+        if self.alert_manager.is_showing():
+            self._render_alert()
 
-    def _render_confirmation_dialog(self):
-        """Render the confirmation dialog with appropriate message and info"""
-        message = None
-        additional_info = []
-        
-        if self.view_state.confirmation_type == 'cancel':
-            message = "Do you want to cancel the download?"
-        elif self.view_state.confirmation_type == 'download' and self.game_to_download:
-            message = f"Do you want to download?"
-            additional_info = [
-                (self.game_to_download.get('name', ''), Theme.TEXT_SECONDARY),
-                (f"Size: {DownloadManager.format_size(self.game_to_download.get('size', 0))}", Theme.TEXT_SECONDARY)
-            ]
+    def _render_confirmation_dialog(self) -> None:
+        """Render the confirmation dialog with appropriate message and info."""
+        message, additional_info = self._get_confirmation_content()
         
         self.confirmation_dialog.render(
             message=message,
             confirmation_selected=self.view_state.confirmation_selected,
             button_texts=("Yes", "No"),
             additional_info=additional_info
+        )
+
+    def _get_confirmation_content(self) -> Tuple[str, List[Tuple[str, Tuple[int, int, int, int]]]]:
+        """Get the content for the confirmation dialog.
+        
+        Returns:
+            Tuple containing message string and list of additional info tuples
+        """
+        if self.view_state.confirmation_type == 'exit':
+            return "Do you want to exit?", []
+        
+        if self.view_state.confirmation_type == 'cancel':
+            return "Do you want to cancel downloading?", [(self.game_to_download.get('name', ''), Theme.TEXT_SECONDARY),]
+            
+        if self.view_state.confirmation_type == 'download' and self.game_to_download:
+            game_size = self.game_to_download.get('size', 0)
+            total_space, free_space = DownloadManager.get_disk_space()
+            
+            # Format the information
+            size_text = f"Game Size: 'Geting Game Size..."
+            game_size_color = Theme.INFO
+            if game_size == -1:
+                size_text = f"Game Size: Unknown"
+                game_size_color = Theme.WARNING
+            elif game_size > 0:
+                size_text = f"Game Size: {DownloadManager.format_size(game_size)}"
+                game_size_color = Theme.TEXT_SECONDARY
+            
+            space_text = f"Free Space: {DownloadManager.format_size(free_space)} / {DownloadManager.format_size(total_space)}"
+            
+            # Determine text color based on available space
+            space_color = Theme.TEXT_SECONDARY
+            if game_size > free_space:
+                space_color = Theme.ERROR
+            elif free_space < (total_space * 0.1):  # Less than 10% space left
+                space_color = Theme.WARNING
+                
+            return (
+                "Do you want to download?",
+                [
+                    (self.game_to_download.get('name', ''), Theme.TEXT_SECONDARY),
+                    (size_text, game_size_color),
+                    (space_text, space_color)
+                ]
+            )
+            
+        return "", []
+
+    def _render_alert(self) -> None:
+        """Render the alert dialog."""
+        self.alert_dialog.render(
+            message=self.alert_manager.get_message(),
+            additional_info=self.alert_manager.get_additional_info()
         )
 
     def _wrap_text(self, text, max_width):
@@ -1111,7 +1253,7 @@ class GameDownloaderApp:
         """Clean up resources before application exit."""
         try:
             # Clean up downloads
-            for download_info in self.active_downloads.values():
+            for download_info in self.downloads.values():
                 try:
                     if 'manager' in download_info:
                         download_info['manager'].cancel()
@@ -1124,7 +1266,11 @@ class GameDownloaderApp:
                     self.texture_manager.cleanup()
                 except Exception as e:
                     logger.warning(f"Failed to cleanup texture manager: {str(e)}")
-
+                    
+            for image in os.listdir(Config.IMAGES_CACHE_DIR):
+                os.remove(os.path.join(Config.IMAGES_CACHE_DIR, image))
+            logger.info("Cached imaged cleaned")
+            
             if hasattr(self, 'font'):
                 sdl2.sdlttf.TTF_CloseFont(self.font)
                 
@@ -1137,16 +1283,202 @@ class GameDownloaderApp:
             if hasattr(self, 'window'):
                 sdl2.SDL_DestroyWindow(self.window)
 
+            if hasattr(self, 'database'):
+                self.database.close() 
+                
             # Quit SDL subsystems
             sdl2.sdlimage.IMG_Quit()
             sdl2.sdlttf.TTF_Quit()
             sdl2.SDL_Quit()
-            
-            # Clear the singleton instance
+
             GameDownloaderApp.instance = None
-            
             logger.info("Cleanup completed successfully")
             
         except Exception as e:
             logger.error(f"Error during cleanup: {str(e)}", exc_info=True)
             # Don't re-raise as we're already cleaning up 
+            
+    def _get_current_platform_id(self) -> str:
+        """Get the ID of the currently selected platform.
+        
+        Returns:
+            str: The current platform ID or empty string if invalid
+        """
+        if self.cached_platforms is None:
+            self.cached_platforms = self.database.get_platforms()
+            
+        if 0 <= self.nav_state.selected_platform < len(self.cached_platforms):
+            return self.cached_platforms[self.nav_state.selected_platform].get('id', '')
+        return ''
+
+    def _navigate_games(self, direction):
+        """Navigate through games in the current platform.
+        
+        Args:
+            direction: Direction to navigate (1 for next, -1 for previous)
+        """
+        # Get the appropriate games list
+        total_games, games_list = self._get_current_games_list()
+        
+        if not games_list or total_games == 0:
+            return
+            
+        # Calculate new position
+        new_selected = self.nav_state.selected_game + direction
+        
+        if new_selected < 0:
+            # Going up from first game - go to previous page and select last game
+            self._change_page(-1)
+            # Get the updated games list after page change
+            _, new_games_list = self._get_current_games_list()
+            if new_games_list:
+                self.nav_state.selected_game = len(new_games_list) - 1
+        elif new_selected >= len(games_list):
+            # Going down from last game - go to next page and select first game
+            self._change_page(1)
+            # The _change_page method already sets selected_game to 0
+        else:
+            self.nav_state.selected_game = new_selected
+            
+        # Reset only image loading state when navigating
+        self._reset_game_image_state()
+
+    def _handle_game_selection(self):
+        """Handle game selection in games view."""
+        # Get current game list
+        total_games, games_list = self._get_current_games_list()
+        
+        # Check if there are any games and if selection is valid
+        if not games_list or self.nav_state.selected_game >= len(games_list):
+            return
+            
+        # Store the game to be downloaded
+        self.game_to_download = games_list[self.nav_state.selected_game]
+        
+        # Check if game is already being downloaded
+        if self.game_to_download['name'] in self.downloads:
+            self.alert_manager.show_alert(
+                "Download in Progress",
+                [("This game is already being downloaded.", Theme.TEXT_SECONDARY)]
+            )
+            return
+        
+        self.download_manager = DownloadManager(
+            game=self.game_to_download
+        )
+        
+        # Start async size check
+        self.download_manager.get_game_size_async()
+        
+        # Show confirmation dialog immediately with "Checking size..."
+        self.game_to_download['size'] = 0
+        self._show_confirmation("download")
+        
+        # Update size in background
+        def update_size():
+            if self.download_manager.wait_for_size(timeout=10):  # Wait up to 10 seconds
+                self.game_to_download['size'] = self.download_manager.status["total_size"]
+                total_space, free_space = DownloadManager.get_disk_space()
+                if self.game_to_download['size'] > free_space:
+                    self.view_state.showing_confirmation = False
+                    self.alert_manager.show_alert(
+                        "Insufficient Disk Space",
+                        [
+                            (f"Game Size: {DownloadManager.format_size(self.game_to_download['size'])}", Theme.TEXT_SECONDARY),
+                            (f"Free Space: {DownloadManager.format_size(free_space)}", Theme.ERROR),
+                            ("Please free up some disk space and try again.", Theme.TEXT_SECONDARY)
+                        ]
+                    )
+            else:
+                self.game_to_download['size'] = -1
+                logger.warning("Failed to get game size or timed out")
+        
+        update_thread = threading.Thread(target=update_size)
+        update_thread.daemon = True
+        update_thread.start()
+
+    def _show_confirmation(self, confirmation_type: str) -> None:
+        """Show confirmation dialog with specified type.
+        
+        Args:
+            confirmation_type: Type of confirmation ('download' or 'cancel' or 'exit)
+        """
+        self.view_state.showing_confirmation = True
+        self.view_state.confirmation_type = confirmation_type
+        self.view_state.confirmation_selected = False
+
+    def _handle_pause_resume(self):
+        """Handle pause/resume functionality for downloads"""
+        if not self.downloads:
+            return
+            
+        # If a specific download is selected, toggle that one
+        if self.selected_download and self.selected_download in self.downloads:
+            download_info = self.downloads[self.selected_download]
+            if 'manager' in download_info:
+                manager = download_info['manager']
+                if manager.status["is_paused"]:
+                    manager.resume()
+                else:
+                    manager.pause()
+        # Otherwise toggle all active downloads
+        else:
+            for download_info in self.downloads.values():
+                if 'manager' in download_info:
+                    manager = download_info['manager']
+                    if manager.status["is_paused"]:
+                        manager.resume()
+                    else:
+                        manager.pause()
+
+    def _handle_grid_navigation(self, key, total_items, current_selected, current_page, page_setter=None):
+        """Handle navigation in a grid layout.
+        
+        Args:
+            key: SDL key code for the pressed key
+            total_items: Total number of items in the grid
+            current_selected: Currently selected item index
+            current_page: Current page number
+            page_setter: Optional callback to set the page number
+            
+        Returns:
+            int: New selected item index
+        """
+        if total_items == 0:
+            return current_selected
+            
+        current_row = (current_selected % Config.CARDS_PER_PAGE) // Config.CARDS_PER_ROW
+        current_col = (current_selected % Config.CARDS_PER_PAGE) % Config.CARDS_PER_ROW
+        total_pages = math.ceil(total_items / Config.CARDS_PER_PAGE)
+        
+        new_index = current_selected
+        
+        if key == sdl2.SDLK_UP and current_row > 0:
+            new_index = (current_page * Config.CARDS_PER_PAGE) + ((current_row - 1) * Config.CARDS_PER_ROW) + current_col
+            
+        elif key == sdl2.SDLK_DOWN and current_row < 2:  # 2 is the last row (0-based)
+            new_index = (current_page * Config.CARDS_PER_PAGE) + ((current_row + 1) * Config.CARDS_PER_ROW) + current_col
+            
+        elif key == sdl2.SDLK_LEFT:
+            if current_col > 0:
+                new_index = (current_page * Config.CARDS_PER_PAGE) + (current_row * Config.CARDS_PER_ROW) + (current_col - 1)
+            elif current_page > 0:
+                new_page = current_page - 1
+                new_col = Config.CARDS_PER_ROW - 1  # Rightmost column
+                new_index = (new_page * Config.CARDS_PER_PAGE) + (current_row * Config.CARDS_PER_ROW) + new_col
+                if new_index >= total_items:
+                    new_index = total_items - 1
+                if page_setter:
+                    page_setter(new_page)
+                    
+        elif key == sdl2.SDLK_RIGHT:
+            if current_col < Config.CARDS_PER_ROW - 1:
+                new_index = (current_page * Config.CARDS_PER_PAGE) + (current_row * Config.CARDS_PER_ROW) + (current_col + 1)
+            elif current_page < total_pages - 1:
+                new_page = current_page + 1
+                new_col = 0  # Leftmost column
+                new_index = (new_page * Config.CARDS_PER_PAGE) + (current_row * Config.CARDS_PER_ROW) + new_col
+                if new_index < total_items and page_setter:
+                    page_setter(new_page)
+                    
+        return min(new_index, total_items - 1) if new_index < total_items else current_selected

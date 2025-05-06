@@ -11,24 +11,20 @@ from .base_view import BaseView
 class KeyboardView(BaseView):
     """View class for rendering the on-screen keyboard"""
     
-    def __init__(self, renderer, font, texture_manager):
+    def __init__(self, renderer, font=None):
         """Initialize the keyboard view with layout"""
-        super().__init__(renderer, font, texture_manager)
+        super().__init__(renderer, font)
         self.keyboard_layout = [
-            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '<'],
-            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-            ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
-            ['Space', 'Return']
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '@'],
+            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '#'],
+            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '"', '/'],
+            ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '-', '_', '?', '!'],
+            ['Clear', 'Space', 'Return', '<']
         ]
+        self.cursor_blink_rate = 530  # Blink rate in milliseconds
         
     def render(self, selected_key: int, search_text: str) -> None:
-        """Render the on-screen keyboard and search box
-        
-        Args:
-            selected_key: Index of the currently selected key
-            search_text: Current search text
-        """
+        """Render the on-screen keyboard and search box"""
         try:
             # Semi-transparent overlay
             overlay = sdl2.SDL_Rect(0, 0, Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT)
@@ -36,11 +32,11 @@ class KeyboardView(BaseView):
             sdl2.SDL_SetRenderDrawColor(self.renderer, *Theme.OVERLAY_COLOR)
             sdl2.SDL_RenderFillRect(self.renderer, overlay)
 
-            # Create keyboard panel with adjusted size
-            panel_padding = 20
-            panel_height = 300
+            # Create keyboard panel with scaled dimensions
+            panel_padding = int(20 * Config.SCALE_FACTOR)
+            panel_height = int(300 * Config.SCALE_FACTOR)
             panel_y = Config.SCREEN_HEIGHT - panel_height - panel_padding
-            panel_width = min(800, Config.SCREEN_WIDTH - (panel_padding * 2))
+            panel_width = min(int(800 * Config.SCALE_FACTOR), Config.SCREEN_WIDTH - (panel_padding * 2))
             panel_x = (Config.SCREEN_WIDTH - panel_width) // 2
             
             panel_rect = sdl2.SDL_Rect(
@@ -51,9 +47,10 @@ class KeyboardView(BaseView):
             )
 
             # Draw panel background with shadow
+            shadow_offset = int(4 * Config.SCALE_FACTOR)
             shadow_rect = sdl2.SDL_Rect(
-                panel_rect.x + 4,
-                panel_rect.y + 4,
+                panel_rect.x + shadow_offset,
+                panel_rect.y + shadow_offset,
                 panel_rect.w,
                 panel_rect.h
             )
@@ -66,10 +63,10 @@ class KeyboardView(BaseView):
             sdl2.SDL_SetRenderDrawColor(self.renderer, 50, 50, 50, 255)
             sdl2.SDL_RenderDrawRect(self.renderer, panel_rect)
 
-            # Render search box with modern design
-            search_box_height = 40
-            search_box_y = panel_y + 20
-            search_box_padding = 20
+            # Render search box with scaled dimensions
+            search_box_height = int(40 * Config.SCALE_FACTOR)
+            search_box_y = panel_y + int(20 * Config.SCALE_FACTOR)
+            search_box_padding = int(20 * Config.SCALE_FACTOR)
             
             # Draw search box background
             search_box_rect = sdl2.SDL_Rect(
@@ -86,36 +83,75 @@ class KeyboardView(BaseView):
             sdl2.SDL_SetRenderDrawColor(self.renderer, *glow_color)
             sdl2.SDL_RenderDrawRect(self.renderer, search_box_rect)
 
-            # Render search text or placeholder
-            text_y = search_box_y + (search_box_height - 24) // 2
+            # Render search text or placeholder with scaled dimensions
+            text_padding = int(10 * Config.SCALE_FACTOR)
+            text_y = search_box_y + (search_box_height - int(24 * Config.SCALE_FACTOR)) // 2
+            text_x = panel_x + search_box_padding + text_padding
+            
             if search_text:
+                # Get text dimensions for cursor positioning
+                text_surface = sdl2.sdlttf.TTF_RenderText_Solid(
+                    self.font,
+                    search_text.encode(),
+                    sdl2.SDL_Color(230, 230, 230)
+                )
+                text_width = text_surface.contents.w
+                sdl2.SDL_FreeSurface(text_surface)
+                
+                # Render the search text
                 self.render_text(
                     search_text,
-                    panel_x + search_box_padding + 10,
+                    text_x,
                     text_y,
                     color=(230, 230, 230),
                     center=False
                 )
+                
+                # Draw blinking cursor with scaled dimensions
+                current_time = sdl2.SDL_GetTicks()
+                if (current_time // self.cursor_blink_rate) % 2 == 0:
+                    cursor_x = text_x + text_width + int(2 * Config.SCALE_FACTOR)
+                    cursor_height = int(20 * Config.SCALE_FACTOR)
+                    cursor_y = text_y + int(2 * Config.SCALE_FACTOR)
+                    
+                    # Draw cursor line
+                    sdl2.SDL_SetRenderDrawColor(self.renderer, 230, 230, 230, 255)
+                    sdl2.SDL_RenderDrawLine(
+                        self.renderer,
+                        cursor_x,
+                        cursor_y,
+                        cursor_x,
+                        cursor_y + cursor_height
+                    )
             else:
                 self.render_text(
                     "Type to search games...",
-                    panel_x + search_box_padding + 10,
+                    text_x,
                     text_y,
                     color=(120, 120, 120),
                     center=False
                 )
 
-            # Keyboard layout with improved styling
-            keyboard_y = search_box_y + search_box_height + 20
+            # Keyboard layout with scaled dimensions
+            keyboard_y = search_box_y + search_box_height + int(20 * Config.SCALE_FACTOR)
             keyboard_width = panel_width - (search_box_padding * 2)
-            key_height = 36
-            key_spacing = 6
+            key_height = int(36 * Config.SCALE_FACTOR)
+            key_spacing = int(6 * Config.SCALE_FACTOR)
 
             # Calculate key sizes based on available width
-            standard_key_width = int((keyboard_width - (11 * key_spacing)) / 12)  # Based on longest row (11 keys)
-            backspace_width = int(standard_key_width * 1.5)
-            space_width = int(keyboard_width * 0.6)  # 60% of keyboard width
-            return_width = keyboard_width - space_width - key_spacing  # Remaining width
+            standard_key_width = int((keyboard_width - (10 * key_spacing)) / 11)  # Based on regular rows with 11 keys
+            
+            # Calculate total width of regular rows (this is our target width)
+            regular_row_width = (standard_key_width * 11) + (10 * key_spacing)
+            
+            # Calculate special key widths
+            clear_width = (standard_key_width * 2) + key_spacing  # Exactly 2 keys + 1 spacing
+            backspace_width = (standard_key_width * 2) + key_spacing  # Exactly 2 keys + 1 spacing
+            
+            # Remaining width split evenly between SPACE and RETURN
+            remaining_width = regular_row_width - clear_width - backspace_width - (3 * key_spacing)
+            space_width = remaining_width // 2
+            return_width = remaining_width - space_width  # Give any odd pixel to RETURN
 
             current_key_index = 0
 
@@ -125,6 +161,8 @@ class KeyboardView(BaseView):
                 for key in row:
                     if key == 'Space':
                         row_width += space_width + key_spacing
+                    elif key == 'Clear':
+                        row_width += clear_width + key_spacing
                     elif key == 'Return':
                         row_width += return_width + key_spacing
                     elif key == '<':
@@ -140,6 +178,8 @@ class KeyboardView(BaseView):
                     # Calculate key width
                     if key == 'Space':
                         current_key_width = space_width
+                    elif key == 'Clear':
+                        current_key_width = clear_width
                     elif key == 'Return':
                         current_key_width = return_width
                     elif key == '<':
@@ -176,13 +216,12 @@ class KeyboardView(BaseView):
 
                     # Render key text
                     text_color = Theme.KEYBOARD_KEY_TEXT_SELECTED if is_selected else Theme.KEYBOARD_KEY_TEXT
-                    
                     display_text = key.upper()
 
                     self.render_text(
                         display_text,
                         int(current_x + current_key_width // 2),
-                        int(keyboard_y + (key_height + key_spacing) * row_index + (key_height - 24) // 2),
+                        int(keyboard_y + (key_height + key_spacing) * row_index + (key_height - int(24 * Config.SCALE_FACTOR)) // 2),
                         color=text_color,
                         center=True
                     )
@@ -193,19 +232,19 @@ class KeyboardView(BaseView):
         except Exception as e:
             logger.error(f"Error rendering keyboard: {e}", exc_info=True)
             
-    def get_keyboard_position(self, selected_key: int) -> Tuple[int, int]:
-        """Get the current row and position within row for keyboard navigation
+    def get_key_index(self, row_index: int, position: int) -> int:
+        """Get the absolute key index from row and position."""
+        total = 0
+        for i in range(row_index):
+            total += len(self.keyboard_layout[i])
+        return total + position
         
-        Args:
-            selected_key: Index of the currently selected key
-            
-        Returns:
-            Tuple[int, int]: (row_index, position_in_row)
-        """
+    def get_keyboard_position(self, selected_key: int) -> Tuple[int, int]:
+        """Get the row and position for a key index."""
         current_index = 0
         for row_index, row in enumerate(self.keyboard_layout):
             row_length = len(row)
             if current_index + row_length > selected_key:
                 return row_index, selected_key - current_index
             current_index += row_length
-        return len(self.keyboard_layout) - 1, 0 
+        return len(self.keyboard_layout) - 1, len(self.keyboard_layout[-1]) - 1 
