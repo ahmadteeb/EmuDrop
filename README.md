@@ -18,7 +18,7 @@ A modern, user-friendly game ROM downloader application mainly for Trimui Smart 
 ![Search Interface](screenshots/search.png)
 *Powerful search functionality with instant results. Find your favorite games quickly with our optimized search engine.*
 
-### 📚 Game Sources
+### 📚 Source Selection
 ![Sources View](screenshots/sources.png)
 *Filter and discover games from various trusted sources. Easily switch between different ROM providers, each offering unique collections and regional variants. Our intelligent source filtering helps you find the perfect version of your favorite games.*
 
