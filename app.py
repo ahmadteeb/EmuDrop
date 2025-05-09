@@ -9,6 +9,7 @@ from typing import Dict, Optional, List, Any, Tuple
 import ctypes
 import os
 import math
+import time
 import threading
 from dataclasses import dataclass
 from contextlib import contextmanager
@@ -124,6 +125,10 @@ class GameDownloaderApp:
             # Initialize alert manager
             self.alert_manager = AlertManager.get_instance()
             self.alert_manager.set_app(self)
+            
+            self.held_joy_button = None
+            self.held_hat_button = None
+            self.held_button_start_time: int = 0
             
             # Initialize joystick if available
             self._initialize_joystick()
@@ -352,11 +357,36 @@ class GameDownloaderApp:
             elif event.type == sdl2.SDL_JOYBUTTONDOWN:
                 if not self._handle_controller_button(event.jbutton.button):
                     return False
+                self.held_joy_button = event.jbutton.button
+                self.held_button_start_time = time.time()
             elif event.type == sdl2.SDL_JOYHATMOTION:
                 if not self._handle_d_pad_controller_button(event.jhat.value):
                     return False
+                self.held_hat_button = event.jhat.value
+        
+        if self.held_joy_button is not None:
+            current_time = time.time()
+            diff_ms = (current_time - self.held_button_start_time) * 1000
+            if sdl2.SDL_JoystickGetButton(self.joystick, self.held_joy_button):
+                if diff_ms >= Config.CONTROLLER_BUTTON_REPEAT_RATE:
+                    if not self._handle_controller_button(self.held_joy_button):
+                        return False
+                    self.held_button_start_time = time.time()
+            else:
+                self.held_joy_button = None
+                
+        if self.held_hat_button is not None:
+            current_time = time.time()
+            diff_ms = (current_time - self.held_button_start_time) * 1000
+            if sdl2.SDL_JoystickGetHat(self.joystick, self.held_hat_button):
+                if diff_ms >= Config.CONTROLLER_BUTTON_REPEAT_RATE:
+                    if not self._handle_controller_button(self.held_hat_button):
+                        return False
+                    self.held_button_start_time = time.time()
+            else:
+                self.held_joy_button = None
         return True
-
+    
     def _handle_window_event(self, event) -> None:
         """Handle window events like resize."""
         if event.window.event == sdl2.SDL_WINDOWEVENT_RESIZED:
@@ -555,11 +585,11 @@ class GameDownloaderApp:
             relative_pos = int((current_pos / row_length) * next_row_length)
             self.nav_state.keyboard_selected_key = self.keyboard_view.get_key_index(next_row, relative_pos)
         
-        elif key == sdl2.SDLK_BACKSPACE:
+        elif key == sdl2.SDLK_d:
             if self.search_text:
                     self.search_text = self.search_text[:-1]
                     
-        elif key == sdl2.SDLK_s:
+        elif key == sdl2.SDLK_SPACE:
             self.view_state.showing_keyboard = False
         
         elif key == sdl2.SDLK_RETURN:

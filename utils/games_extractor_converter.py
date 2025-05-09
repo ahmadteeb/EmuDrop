@@ -15,6 +15,7 @@ class GamesExtractorConverter:
         self.process = None
         self.callback = None        # Callback function for progress updates
         self.status = status
+        self.cancelled = False
     
     def _run_command(self, cmd, operation_name=""):
         """Run a command and update progress information.
@@ -29,6 +30,9 @@ class GamesExtractorConverter:
         Raises:
             RuntimeError: If the command fails to execute
         """
+        if self.cancelled:
+            raise RuntimeError("Operation cancelled")
+            
         self.status['current_operation'] = operation_name
         try:
             process = subprocess.Popen(
@@ -38,7 +42,15 @@ class GamesExtractorConverter:
                 stderr=subprocess.PIPE,
                 universal_newlines=True
             )
+            self.process = process
+            
             stdout, stderr = process.communicate()
+            
+            if self.cancelled:
+                if process.poll() is None:
+                    process.terminate()
+                    process.wait()
+                raise RuntimeError("Operation cancelled")
             
             if process.returncode != 0:
                 error_msg = f"{operation_name}: Command failed with return code {process.returncode}"
@@ -51,9 +63,22 @@ class GamesExtractorConverter:
             return True, stdout
             
         except Exception as e:
+            if self.cancelled:
+                raise RuntimeError("Operation cancelled")
             return False, str(e)
         finally:
             self.process = None
+        
+    def cancel(self):
+        """Cancel the current operation"""
+        self.cancelled = True
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
         
     def move_game(self):
         files_path, files = self.scan_folder(self.download_path)
@@ -85,7 +110,7 @@ class GamesExtractorConverter:
             
             Args:
                 input_file: File to convert
-                converter_type: Type of conversion to perform ('chd', 'cue', 'bin', 'iso')
+                converter_type: Type of conversion to perform ('chd', 'cue', 'iso')
                 
             Raises:
                 RuntimeError: If conversion fails
@@ -119,13 +144,13 @@ class GamesExtractorConverter:
             
             if converter_type in conversion_commands:
                 operation_name = f"Converting to {converter_type.upper()}"
+                logger.info(operation_name)
                 success, result = self._run_command(
                     conversion_commands[converter_type],
                     operation_name
                 )
                 
                 if not success:
-                    # Let the error propagate up without additional logging here
                     raise RuntimeError(result)
                     
                 if converter_type == 'chd':
@@ -135,16 +160,15 @@ class GamesExtractorConverter:
         # Platforms requiring CHD conversion
         to_chd_platforms = ['SEGACD', 'DC', 'PANASONIC', 'PS', 'NAOMI', 'PCFX']
         if self.platform_id in to_chd_platforms:
-            # Count total conversion operations
-            conversion_files = {
+            # Group files by extension for batch processing
+            file_groups = {
                 'ccd': [f for f in files if f.lower().endswith('.ccd')],
                 'ecm': [f for f in files if f.lower().endswith('.ecm')],
-                'img': [f for f in files if f.lower().endswith('.img')],
-                'chd': [f for f in files if f.lower().endswith(('.iso', '.gdi', '.cue'))]
+                'img': [f for f in files if f.lower().endswith('.img')]
             }
             
-            # Perform conversions
-            for ext, conv_files in conversion_files.items():
+            # Process each group of files
+            for ext, conv_files in file_groups.items():
                 for file in conv_files:
                     if ext == 'ccd':
                         _convert_file(file, 'cue')
@@ -152,24 +176,30 @@ class GamesExtractorConverter:
                         _convert_file(file, 'bin')
                     elif ext == 'img':
                         _convert_file(file, 'iso')
-                    elif ext == 'chd':
-                        _convert_file(file, 'chd')
-
-            if not any(file.lower().endswith(ext) for file in files for ext in ('.iso', '.gdi', '.cue')):
+            
+            # Convert all intermediate files to CHD
+            intermediate_files = [f for f in os.listdir(files_path) 
+                               if f.lower().endswith(('.cue', '.gdi', '.iso'))]
+            for file in intermediate_files:
+                _convert_file(file, 'chd')
+                
+            # If no CHD files were created, fall back to normal processing
+            if not any(f.lower().endswith('.chd') for f in os.listdir(output_path)):
                 _normal_game_out()
         else:
             _normal_game_out()
             
         # Final move to ROM path
         self.status['current_operation'] = "Moving to ROM directory"
-        list_output_files = os.listdir(output_path)
-        if list_output_files:
+        output_files = os.listdir(output_path)
+        if output_files:
             os.makedirs(self.rom_path, exist_ok=True)
-            for file in list_output_files:
+            for file in output_files:
                 os.replace(
                     os.path.join(output_path, file),
                     os.path.join(self.rom_path, file)
                 )
+                
         return list(set(game_names_to_scrape))
                 
     def scan_folder(self, subfolder):

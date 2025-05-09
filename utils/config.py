@@ -129,6 +129,8 @@ class Config:
     CONTROLLER_BUTTON_LEFT = 8  
     CONTROLLER_BUTTON_RIGHT = 2 
 
+    CONTROLLER_BUTTON_REPEAT_RATE = 250
+    
     # Animation settings
     ANIMATION_DURATION = 300  # milliseconds
     LOADING_ANIMATION_SPEED = 100  # milliseconds per frame

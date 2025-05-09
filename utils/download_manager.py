@@ -189,14 +189,14 @@ class DownloadManager:
                         # Check for cancellation
                         if self.cancel_download.is_set():
                             logger.info("Download cancelled")
-                            break
+                            return
                         
                         # Check for pause
                         if self.pause_download.is_set():
                             while self.pause_download.is_set() and not self.cancel_download.is_set():
                                 time.sleep(0.1)  # Sleep while paused
                             if self.cancel_download.is_set():
-                                break
+                                return
                         
                         if chunk:
                             file.write(chunk)
@@ -216,47 +216,71 @@ class DownloadManager:
                 self.status["progress"] = 100
                 self.status["state"] = "processing"
                 
-                self.gameExtractorConverter = GamesExtractorConverter(self.status, self.game_prop, self.download_path)
-                game_names_to_scrape = self.gameExtractorConverter.move_game()
-                logger.info(f"{self.game_prop.name} has been moved successfully")
-                
-                # Update status for scraping
-                self.status["state"] = "scraping"
-                self.status["current_operation"] = "Scraping Cover Images"
-                
-                scrapper = ScreenScraper()
-                for name in game_names_to_scrape:
-                    message = scrapper.scrape_rom(self.game_prop.image_url, name, self.game_prop.platform_id)
-                    logger.info(message)
-                
-                # Mark as completed
-                self.status["state"] = "completed"
-                self.status["current_operation"] = ""
+                try:
+                    self.gameExtractorConverter = GamesExtractorConverter(self.status, self.game_prop, self.download_path)
+                    game_names_to_scrape = self.gameExtractorConverter.move_game()
+                    logger.info(f"{self.game_prop.name} has been moved successfully")
+                    
+                    # Update status for scraping
+                    self.status["state"] = "scraping"
+                    self.status["current_operation"] = "Scraping Cover Images"
+                    
+                    scrapper = ScreenScraper()
+                    for name in game_names_to_scrape:
+                        if self.cancel_download.is_set():
+                            return
+                        message = scrapper.scrape_rom(self.game_prop.image_url, name, self.game_prop.platform_id)
+                        logger.info(message)
+                    
+                    # Mark as completed
+                    self.status["state"] = "completed"
+                    self.status["current_operation"] = ""
+                except Exception as e:
+                    if self.cancel_download.is_set():
+                        logger.info("Operation cancelled during processing")
+                        return
+                    raise e
 
         except Exception as e:
+            if self.cancel_download.is_set():
+                logger.info("Operation cancelled")
+                return
             logger.error(f"Download failed: {e}")
             self.status["state"] = "error"
             self.status["error_message"] = str(e)
         
         finally:
-            shutil.rmtree(self.download_path)
-        
-        
+            if not self.cancel_download.is_set():
+                try:
+                    shutil.rmtree(self.download_path)
+                except Exception as e:
+                    logger.error(f"Error cleaning up download directory: {e}")
+
     def cancel(self):
         """Cancel the ongoing download"""
         self.status['state'] = "cancelling"
-        if self.gameExtractorConverter is not None and self.gameExtractorConverter.process is not None:
-            self.gameExtractorConverter.process.terminate()
-            self.gameExtractorConverter.process.wait()
         
-        if self.download_thread:
+        # Cancel extraction/conversion if in progress
+        if self.gameExtractorConverter is not None:
+            try:
+                self.gameExtractorConverter.cancel()
+            except Exception as e:
+                logger.error(f"Error cancelling extraction: {e}")
+        
+        # Cancel download if in progress
+        if self.download_thread and self.download_thread.is_alive():
             self.cancel_download.set()
-            if self.download_thread:
-                self.download_thread.join()
+            try:
+                self.download_thread.join(timeout=5)
+            except Exception as e:
+                logger.error(f"Error waiting for download thread: {e}")
         
-        # Remove partial download file if exists
-        if self.status["state"] != "queued" and os.path.exists(self.download_path):
-            shutil.rmtree(self.download_path)
+        # Clean up
+        try:
+            if os.path.exists(self.download_path):
+                shutil.rmtree(self.download_path)
+        except Exception as e:
+            logger.error(f"Error cleaning up download directory: {e}")
 
         # Remove from the list of all managers
         if self in DownloadManager._all_managers:
@@ -264,6 +288,10 @@ class DownloadManager:
                 
         # Update queue positions for remaining downloads
         self._update_queue_positions()
+        
+        # Update final status
+        self.status['state'] = "cancelled"
+        self.status['current_operation'] = ""
 
     @staticmethod
     def format_size(size_bytes):
