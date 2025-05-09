@@ -126,9 +126,9 @@ class GameDownloaderApp:
             self.alert_manager = AlertManager.get_instance()
             self.alert_manager.set_app(self)
             
-            self.held_joy_button = None
-            self.held_hat_button = None
-            self.held_button_start_time: int = 0
+            self.held_joy_buttons = {}
+            self.held_hat_button = sdl2.SDL_HAT_CENTERED
+            self.last_hat_time: int = 0
             
             # Initialize joystick if available
             self._initialize_joystick()
@@ -355,36 +355,33 @@ class GameDownloaderApp:
                 if not self._handle_input_event(event.key.keysym.sym):
                     return False
             elif event.type == sdl2.SDL_JOYBUTTONDOWN:
-                if not self._handle_controller_button(event.jbutton.button):
+                button = event.jbutton.button
+                if not self._handle_controller_button(button):
                     return False
-                self.held_joy_button = event.jbutton.button
-                self.held_button_start_time = time.time()
+                self.held_joy_buttons[button] = time.time()
+            elif event.type == sdl2.SDL_JOYBUTTONUP:
+                button = event.jbutton.button
+                self.held_joy_buttons.pop(button, None)
             elif event.type == sdl2.SDL_JOYHATMOTION:
-                if not self._handle_d_pad_controller_button(event.jhat.value):
+                button = event.jhat.value
+                if not self._handle_d_pad_controller_button(button):
                     return False
-                self.held_hat_button = event.jhat.value
+                self.held_hat_button = button
+                self.last_hat_time = time.time()
         
-        if self.held_joy_button is not None:
-            current_time = time.time()
-            diff_ms = (current_time - self.held_button_start_time) * 1000
-            if sdl2.SDL_JoystickGetButton(self.joystick, self.held_joy_button):
-                if diff_ms >= Config.CONTROLLER_BUTTON_REPEAT_RATE:
-                    if not self._handle_controller_button(self.held_joy_button):
-                        return False
-                    self.held_button_start_time = time.time()
-            else:
-                self.held_joy_button = None
+        now = time.time()
+        for button, last_time in self.held_joy_buttons.items():
+            if now - last_time >= Config.CONTROLLER_BUTTON_REPEAT_RATE / 1000.0:
+                if not self._handle_controller_button(button):
+                    return False
+                self.held_joy_buttons[button] = now
                 
-        if self.held_hat_button is not None:
-            current_time = time.time()
-            diff_ms = (current_time - self.held_button_start_time) * 1000
-            if sdl2.SDL_JoystickGetHat(self.joystick, self.held_hat_button):
-                if diff_ms >= Config.CONTROLLER_BUTTON_REPEAT_RATE:
-                    if not self._handle_controller_button(self.held_hat_button):
+        if self.held_hat_button != sdl2.SDL_HAT_CENTERED:
+                if now - self.last_hat_time >= Config.CONTROLLER_BUTTON_REPEAT_RATE / 1000.0:
+                    if not self._handle_d_pad_controller_button(self.held_hat_button):
                         return False
-                    self.held_button_start_time = time.time()
-            else:
-                self.held_joy_button = None
+                    self.last_hat_time = now
+        
         return True
     
     def _handle_window_event(self, event) -> None:
@@ -585,11 +582,11 @@ class GameDownloaderApp:
             relative_pos = int((current_pos / row_length) * next_row_length)
             self.nav_state.keyboard_selected_key = self.keyboard_view.get_key_index(next_row, relative_pos)
         
-        elif key == sdl2.SDLK_d:
+        elif key == sdl2.SDLK_SPACE:
             if self.search_text:
                     self.search_text = self.search_text[:-1]
                     
-        elif key == sdl2.SDLK_SPACE:
+        elif key == sdl2.SDLK_BACKSPACE:
             self.view_state.showing_keyboard = False
         
         elif key == sdl2.SDLK_RETURN:
