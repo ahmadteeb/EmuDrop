@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Dict, Optional, List, Any, Tuple
 import ctypes
 import os
+import shutil
 import math
 import time
 import threading
@@ -1293,9 +1294,8 @@ class GameDownloaderApp:
                     self.texture_manager.cleanup()
                 except Exception as e:
                     logger.warning(f"Failed to cleanup texture manager: {str(e)}")
-                    
-            for image in os.listdir(Config.IMAGES_CACHE_DIR):
-                os.remove(os.path.join(Config.IMAGES_CACHE_DIR, image))
+            
+            shutil.rmtree(Config.IMAGES_CACHE_DIR)
             logger.info("Cached imaged cleaned")
             
             if hasattr(self, 'font'):

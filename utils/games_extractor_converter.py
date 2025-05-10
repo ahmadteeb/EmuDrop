@@ -2,7 +2,7 @@ import os
 import subprocess
 from utils.logger import logger
 from utils.config import Config
-
+import shutil
 
 class GamesExtractorConverter:
     def __init__(self, status, game_prop, download_path) -> None:
@@ -106,15 +106,6 @@ class GamesExtractorConverter:
                 game_names_to_scrape.append(dest_file)
 
         def _convert_file(input_file, converter_type):
-            """Generic function to handle file conversion
-            
-            Args:
-                input_file: File to convert
-                converter_type: Type of conversion to perform ('chd', 'cue', 'iso')
-                
-            Raises:
-                RuntimeError: If conversion fails
-            """
             game_name = clean_stem(input_file)
             
             conversion_commands = {
@@ -134,11 +125,6 @@ class GamesExtractorConverter:
                     f"{os.environ['EXECUTABLES_DIR']}/ecm2bin",
                     os.path.join(files_path, input_file),
                     os.path.join(files_path, f"{game_name}.bin")
-                ],
-                'iso': [
-                    f"{os.environ['EXECUTABLES_DIR']}/ccd2iso",
-                    os.path.join(files_path, input_file),
-                    os.path.join(files_path, f"{game_name}.iso")
                 ]
             }
             
@@ -158,7 +144,7 @@ class GamesExtractorConverter:
                     logger.info(f"File {input_file} has been converted to CHD successfully")
 
         # Platforms requiring CHD conversion
-        to_chd_platforms = ['SEGACD', 'DC', 'PANASONIC', 'PS', 'NAOMI', 'PCFX']
+        to_chd_platforms = ['SEGACD', 'DC', 'PANASONIC', 'PS', 'NAOMI', 'PCFX', 'PCECD', 'SATURN']
         if self.platform_id in to_chd_platforms:
             # Group files by extension for batch processing
             file_groups = {
@@ -175,11 +161,12 @@ class GamesExtractorConverter:
                     elif ext == 'ecm':
                         _convert_file(file, 'bin')
                     elif ext == 'img':
-                        _convert_file(file, 'iso')
-            
+                        new_file_name = f"{clean_stem(file)}.bin"
+                        shutil.copyfile(os.path.join(files_path, file), os.path.join(files_path, new_file_name))
+                        
             # Convert all intermediate files to CHD
             intermediate_files = [f for f in os.listdir(files_path) 
-                               if f.lower().endswith(('.cue', '.gdi', '.iso'))]
+                               if f.lower().endswith(('.cue', '.gdi'))]
             for file in intermediate_files:
                 _convert_file(file, 'chd')
                 
