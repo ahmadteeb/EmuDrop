@@ -130,7 +130,7 @@ class GamesExtractorConverter:
             
             if converter_type in conversion_commands:
                 operation_name = f"Converting to {converter_type.upper()}"
-                logger.info(operation_name)
+                logger.info(f"{operation_name}: {input_file}")
                 success, result = self._run_command(
                     conversion_commands[converter_type],
                     operation_name
@@ -150,7 +150,8 @@ class GamesExtractorConverter:
             file_groups = {
                 'ccd': [f for f in files if f.lower().endswith('.ccd')],
                 'ecm': [f for f in files if f.lower().endswith('.ecm')],
-                'img': [f for f in files if f.lower().endswith('.img')]
+                'img': [f for f in files if f.lower().endswith('.img')],
+                'cue': [f for f in files if f.lower().endswith('.cue')],
             }
             
             # Process each group of files
@@ -160,6 +161,18 @@ class GamesExtractorConverter:
                         _convert_file(file, 'cue')
                     elif ext == 'ecm':
                         _convert_file(file, 'bin')
+                    elif ext == 'cue':
+                        file_path = os.path.join(files_path, file)
+                        with open(file_path, 'r') as f:
+                            content = f.readlines()
+                        
+                        bin_name_line = content[0].split('"')
+                        bin_name_line[1] = f"{clean_stem(file)}.bin"
+                        content[0] = '"'.join(bin_name_line)
+                        
+                        with open(file_path, 'w') as f:
+                            f.writelines(content)
+                            
                     elif ext == 'img':
                         new_file_name = f"{clean_stem(file)}.bin"
                         shutil.copyfile(os.path.join(files_path, file), os.path.join(files_path, new_file_name))
