@@ -3,11 +3,11 @@
 A modern, user-friendly game ROM downloader application mainly for Trimui Smart Pro and Trimui Brick developed using Python and SDL2. This application provides a sleek interface for browsing and downloading retro game ROMs with a controller-friendly design.
 
 ## ☕ Support Me
-If you like this project, consider supporting me on Ko-fi:
+If you like this project, consider supporting me on Buymeacoffee:
 
 <p align="center" >
-    <a href="https://ko-fi.com/ahmadteeb/?hidefeed=true&widget=true&isPopup=true">
-        <img src="https://cdn.ko-fi.com/cdn/kofi5.png?v=3" />
+    <a href="https://buymeacoffee.com/ahmadteeb">
+        <img width="500px" src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=ahmadteeb&button_colour=4f4f4f&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=ffffff" />
     </a>
 </p>
 
