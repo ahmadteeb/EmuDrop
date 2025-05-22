@@ -52,7 +52,7 @@ def extract_pages(platform_url):
     return list({d["name"]: d for d in reversed(games)}.values())[::-1]
 
 
-with open('hexrom.com/consoles.json', 'r') as f:
+with open('consoles.json', 'r') as f:
     catalog = json.loads(f.read())
 
 for cate in catalog:

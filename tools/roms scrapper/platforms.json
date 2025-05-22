@@ -197,7 +197,7 @@
   },
   {
     "id": "SATURN",
-    "name": "Saturn",
+    "name": "Sega Saturn",
     "image": "SATURN.png",
     "isExtractable": true,
     "canBeRenamed": true

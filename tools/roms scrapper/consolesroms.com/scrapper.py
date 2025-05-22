@@ -62,7 +62,7 @@ for cate in catalog:
     # Extract and save games for the platform
     cate['sources'].append(
         {
-            'source_name': "ConsolesRom",
+            'source_name': "ConsoleRoms",
             'games': extract_pages(cate['page'])
         }
     )
