@@ -7,8 +7,8 @@ If you like this project, consider supporting me on Buymeacoffee:
 
 <p align="center" >
     <a href="https://buymeacoffee.com/ahmadteeb">
-        <img width="500px" src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=ahmadteeb&button_colour=4f4f4f&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=ffffff" />
-    </a>
+        <img width="500px" src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=ahmadteeb&button_colour=4f4f4f&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=efffff" />
+    </a>                        
 </p>
 
 ## 📸 Screenshots
