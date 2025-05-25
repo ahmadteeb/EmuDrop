@@ -111,11 +111,11 @@ If you like this project, consider supporting me on Buymeacoffee:
 - Fixed query optimization for large datasets
 
 ## Installation
-1. Download the latest release.
+1. Download the latest release for target OS.
     - https://github.com/ahmadteeb/EmuDrop/releases
 2. Extract the downloaded file to:
-    - /mnt/SDCARD/Apps/
-
+    - Stock/Crossmix OS -> /mnt/SDCARD/Apps/
+    - Knulli OS -> /userdata/roms/tools/
 ## Requirements
 
 - Python 3.6+
