@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 class Config:
     """Application configuration settings"""
@@ -34,6 +35,26 @@ class Config:
     FONTS_DIR = os.path.join(ASSETS_DIR, 'fonts')
     DEFAULT_IMAGE_PATH = os.path.join(IMAGES_DIR, 'default_image.png')
 
+    # Load System OS
+    with open(os.path.join(ASSETS_DIR, 'settings.json'), 'r') as f:
+        SYSTEMS_OS = json.loads(f.read()).get('os', 'stock')
+    
+    # Load System Mapping
+    with open(os.path.join(ASSETS_DIR, 'systems.json'), 'r') as f:
+        SYSTEMS_MAPPING = json.loads(f.read())
+    
+    # Load Scrapper Config
+    with open(os.path.join(ASSETS_DIR, 'settings.json'), 'r') as f:
+        scrapper = json.loads(f.read())['scrapper']
+        SCRAPER_API_MEDIA_TYPE = scrapper['SCRAPER_API_MEDIA_TYPE']
+        SCRAPER_API_MEDIA_WIDTH = scrapper['SCRAPER_API_MEDIA_WIDTH']
+        SCRAPER_API_MEDIA_HEIGHT = scrapper['SCRAPER_API_MEDIA_HEIGHT']
+        SCRAPER_API_SOFTNAME = scrapper['SCRAPER_API_SOFTNAME']
+        SCRAPER_ENCODED_API_USERNAME = scrapper['SCRAPER_ENCODED_API_USERNAME']
+        SCRAPER_ENCODED_API_PASSWORD = scrapper['SCRAPER_ENCODED_API_PASSWORD']
+        SCRAPER_API_USERSSID = scrapper['SCRAPER_API_USERSSID']
+        SCRAPER_API_SSPASS = scrapper['SCRAPER_API_SSPASS']
+    
     # Font settings
     BASE_FONT_SIZE = 24
     FONT_SIZE = int(BASE_FONT_SIZE * SCALE_FACTOR)
@@ -113,21 +134,24 @@ class Config:
     IMAGE_DOWNLOAD_RETRY_DELAYS = [1, 3, 5]  # Delays between retries in seconds
     IMAGE_DOWNLOAD_TIMEOUT = (3, 10)  # (connect timeout, read timeout)
     
-    # Controller button mapping (Trimui Smart Pro)
-    CONTROLLER_BUTTON_A = 1      
-    CONTROLLER_BUTTON_B = 0      
-    CONTROLLER_BUTTON_X = 3      
-    CONTROLLER_BUTTON_Y = 2      
-    CONTROLLER_BUTTON_L = 4      
-    CONTROLLER_BUTTON_R = 5      
-    CONTROLLER_BUTTON_SELECT = 6 
-    CONTROLLER_BUTTON_START = 7  
-    
-    # D-pad button mappings
-    CONTROLLER_BUTTON_UP = 1     
-    CONTROLLER_BUTTON_DOWN = 4   
-    CONTROLLER_BUTTON_LEFT = 8  
-    CONTROLLER_BUTTON_RIGHT = 2 
+    # Loading button mapping
+    with open(os.path.join(ASSETS_DIR, 'settings.json'), 'r') as f:
+        buttons = json.loads(f.read())['buttonMapping']
+        # Controller button mapping
+        CONTROLLER_BUTTON_A = buttons['CONTROLLER_BUTTON_A']      
+        CONTROLLER_BUTTON_B = buttons['CONTROLLER_BUTTON_B']     
+        CONTROLLER_BUTTON_X = buttons['CONTROLLER_BUTTON_X']      
+        CONTROLLER_BUTTON_Y = buttons['CONTROLLER_BUTTON_Y']    
+        CONTROLLER_BUTTON_L = buttons['CONTROLLER_BUTTON_L']   
+        CONTROLLER_BUTTON_R = buttons['CONTROLLER_BUTTON_R']     
+        CONTROLLER_BUTTON_SELECT = buttons['CONTROLLER_BUTTON_SELECT'] 
+        CONTROLLER_BUTTON_START = buttons['CONTROLLER_BUTTON_START']  
+        
+        # D-pad button mappings
+        CONTROLLER_BUTTON_UP = buttons['CONTROLLER_BUTTON_UP']     
+        CONTROLLER_BUTTON_DOWN = buttons['CONTROLLER_BUTTON_DOWN']   
+        CONTROLLER_BUTTON_LEFT = buttons['CONTROLLER_BUTTON_LEFT']  
+        CONTROLLER_BUTTON_RIGHT = buttons['CONTROLLER_BUTTON_RIGHT'] 
 
     CONTROLLER_BUTTON_REPEAT_RATE = 250
     

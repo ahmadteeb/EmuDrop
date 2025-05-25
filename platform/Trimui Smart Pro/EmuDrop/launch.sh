@@ -23,12 +23,8 @@ echo 1608000 >/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
 echo 1 > /tmp/stay_awake #keep screen awake
 
 export ROMS_DIR="/mnt/SDCARD/Roms/"
-export IMGS_DIR="/mnt/SDCARD/Imgs/"
+export IMGS_DIR="/mnt/SDCARD/Imgs/{SYSTEM}/{IMAGE_NAME}.png"
 export EXECUTABLES_DIR="$APP_DIR/assets/executables/"
-export SCRAPER_API_MEDIA_TYPE="box-2D"
-export SCRAPER_API_SOFTNAME="crossmix"
-export SCRAPER_ENCODED_API_USERNAME="KUZE433CLBLHSZCIOB2AU==="
-export SCRAPER_ENCODED_API_PASSWORD="KZEFMTCTIRBHMWJQN55GKSCRGFKGOPJ5BI======"
 
 ./EmuDrop
 rm /tmp/stay_awake

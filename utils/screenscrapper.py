@@ -8,6 +8,7 @@ import re
 from utils.config import Config
 from utils.image_cache import ImageCache
 from utils.logger import logger
+import xml.etree.ElementTree as ET
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -15,17 +16,32 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class ScreenScraper:
     def __init__(self):
         # API credentials
-        self.media_type = os.environ['SCRAPER_API_MEDIA_TYPE']
-        self.softname = os.environ['SCRAPER_API_SOFTNAME']
-        self.u = self._decode_base(os.environ['SCRAPER_ENCODED_API_USERNAME'])
-        self.p = self._decode_base(os.environ['SCRAPER_ENCODED_API_PASSWORD'])
-        self.user_ss = os.environ.get('SCRAPER_API_USERSSID', '')
-        self.pass_ss = os.environ.get('SCRAPER_API_SSPASS', '')
+        self.media_type = Config.SCRAPER_API_MEDIA_TYPE
+        self.softname = Config.SCRAPER_API_SOFTNAME
+        self.u = self._decode_base(Config.SCRAPER_ENCODED_API_USERNAME)
+        self.p = self._decode_base(Config.SCRAPER_ENCODED_API_PASSWORD)
+        self.user_ss = Config.SCRAPER_API_USERSSID
+        self.pass_ss = Config.SCRAPER_API_SSPASS
         
         # Setup session with SSL verification disabled
         self.session = requests.Session()
         self.session.verify = False
-        
+    
+    def xml_indent(self, elem, level=0):
+        i = "\n" + level * "  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            for child in elem:
+                self.xml_indent(child, level + 1)
+                if not child.tail or not child.tail.strip():
+                    child.tail = i + "  "
+            if not elem[-1].tail or not elem[-1].tail.strip():
+                elem[-1].tail = i
+        else:
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+    
     def _decode_base(self, encoded_str: str) -> str:
             """Decode base32 then base64 string"""
             return base64.b64decode(base64.b32decode(encoded_str)).decode()
@@ -162,7 +178,7 @@ class ScreenScraper:
                 media_url = None
                 for media in medias:
                     if media['type'] == self.media_type:
-                        media_url = f"{media['url']}&maxwidth=400&maxheight=580"
+                        media_url = f"{media['url']}&maxwidth={Config.SCRAPER_API_MEDIA_WIDTH}&maxheight={Config.SCRAPER_API_MEDIA_HEIGHT}"
                         break
                 return media_url
     
@@ -207,8 +223,7 @@ class ScreenScraper:
     
     def scrape_rom(self, image_url, file_name, system):
         file_name_no_ext, _ = os.path.splitext(file_name)
-        image_name = f"{file_name_no_ext}.png"
-        target_image = os.path.join(os.environ['IMGS_DIR'], system, image_name)
+        target_image = os.environ['IMGS_DIR'].format(SYSTEM=Config.SYSTEMS_MAPPING[system], IMAGE_NAME=file_name_no_ext)
         
         os.makedirs(os.path.dirname(target_image), exist_ok=True)
         
@@ -217,7 +232,7 @@ class ScreenScraper:
         
         try:
             logger.info("Trying to scrape by hashing the file")
-            file_path = os.path.join(os.environ['ROMS_DIR'], system, file_name)
+            file_path = os.path.join(os.environ['ROMS_DIR'], Config.SYSTEMS_MAPPING[system], file_name)
             media_url = self._scrape_using_file_hash(file_path, system)
             
             if not media_url:
@@ -242,3 +257,42 @@ class ScreenScraper:
             image_path = ImageCache.download_image(image_url)
             shutil.copy(image_path, target_image)
             return "Successfully scraped from cache"
+        
+        finally:
+            if Config.SYSTEMS_OS == "knulli":
+                xml_path = os.path.join(os.environ['ROMS_DIR'], Config.SYSTEMS_MAPPING[system], 'gamelist.xml')
+                new_game_data = {
+                    "path": f"./{file_name}",
+                    "name": file_name,
+                    "image": f"./images/{os.path.basename(target_image)}"
+                }
+                
+                # If XML file doesn't exist, create the base structure
+                if not os.path.exists(xml_path):
+                    root = ET.Element('gameList')
+                    tree = ET.ElementTree(root)
+                    tree.write(xml_path)
+                
+                # Parse existing XML
+                tree = ET.parse(xml_path)
+                root = tree.getroot()
+                
+                # Check if game with same path already exists
+                exists = any(game.find("path") is not None and game.find("path").text == new_game_data["path"]
+                            for game in root.findall("game"))
+                
+                if not exists:
+                    # append new <game> element
+                    new_game = ET.Element('game')
+                    for tag, value in new_game_data.items():
+                        sub = ET.SubElement(new_game, tag)
+                        sub.text = value
+                    
+                    root.append(new_game)
+                    self.xml_indent(root)
+                    tree.write(xml_path, encoding='utf-8', xml_declaration=True)
+                    
+                    logger.info("XML Game entry appended.")
+                else:
+                    logger.info("XML Game entry already exists. No changes made.")
+                        

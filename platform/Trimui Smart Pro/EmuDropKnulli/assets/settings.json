@@ -1,0 +1,27 @@
+{
+    "os": "knulli",
+    "scrapper": {
+        "SCRAPER_API_MEDIA_TYPE": "box-2D",
+        "SCRAPER_API_MEDIA_WIDTH": 640,
+        "SCRAPER_API_MEDIA_HEIGHT": 480, 
+        "SCRAPER_API_SOFTNAME": "crossmix",
+        "SCRAPER_ENCODED_API_USERNAME": "KUZE433CLBLHSZCIOB2AU===",
+        "SCRAPER_ENCODED_API_PASSWORD": "KZEFMTCTIRBHMWJQN55GKSCRGFKGOPJ5BI======",
+        "SCRAPER_API_USERSSID": "",
+        "SCRAPER_API_SSPASS":""
+    },
+    "buttonMapping": {
+        "CONTROLLER_BUTTON_A": 0,     
+        "CONTROLLER_BUTTON_B": 1,     
+        "CONTROLLER_BUTTON_X": 2,     
+        "CONTROLLER_BUTTON_Y": 3,     
+        "CONTROLLER_BUTTON_L": 4,     
+        "CONTROLLER_BUTTON_R": 5,     
+        "CONTROLLER_BUTTON_SELECT": 8,
+        "CONTROLLER_BUTTON_START": 9, 
+        "CONTROLLER_BUTTON_UP": 1,    
+        "CONTROLLER_BUTTON_DOWN": 4,  
+        "CONTROLLER_BUTTON_LEFT": 8,  
+        "CONTROLLER_BUTTON_RIGHT": 2
+    }
+}

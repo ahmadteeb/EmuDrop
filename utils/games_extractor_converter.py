@@ -8,7 +8,7 @@ class GamesExtractorConverter:
     def __init__(self, status, game_prop, download_path) -> None:
         self.platform_id = game_prop.platform_id
         self.download_path = download_path
-        self.rom_path = os.path.join(os.environ['ROMS_DIR'], game_prop.platform_id)
+        self.rom_path = os.path.join(os.environ['ROMS_DIR'], Config.SYSTEMS_MAPPING[game_prop.platform_id])
         self.isExtractable = game_prop.isExtractable
         self.canBeRenamed = game_prop.canBeRenamed
         self.game_name = game_prop.name

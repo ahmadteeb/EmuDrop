@@ -11,6 +11,34 @@ If you like this project, consider supporting me on Buymeacoffee:
     </a>                        
 </p>
 
+
+## 🎮 Devices Support
+
+<div align="center">
+
+<table>
+  <thead>
+    <tr>
+      <th>Device Name</th>
+      <th>OS</th>
+    </tr>
+  </thead>
+  <tbody align="center">
+    <tr><td>TrimUI Smart Pro</td><td><code>Stock</code> <code>Crossmix</code> <code>Knulli</code></td></tr>
+    <tr><td>TrimUI Brick</td><td><code>Stock</code> <code>Crossmix</code> <code>Knulli</code></td></tr>
+    <tr><td>RG35XX Original</td><td><code>Knulli</code></td></tr>
+    <tr><td>RG35XX 2024</td><td><code>Knulli</code></td></tr>
+    <tr><td>RG35XX Plus</td><td><code>Knulli</code></td></tr>
+    <tr><td>RG35XX SP</td><td><code>Knulli</code></td></tr>
+    <tr><td>RG35XX-H</td><td><code>Knulli</code></td></tr>
+    <tr><td>RG35XX-V</td><td><code>Knulli</code></td></tr>
+    <tr><td>RG-CubeXX</td><td><code>Knulli</code></td></tr>
+  </tbody>
+</table>
+
+</div>
+
+
 ## 📸 Screenshots
 
 <div align="center">

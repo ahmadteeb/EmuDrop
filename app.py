@@ -1294,9 +1294,10 @@ class GameDownloaderApp:
                     self.texture_manager.cleanup()
                 except Exception as e:
                     logger.warning(f"Failed to cleanup texture manager: {str(e)}")
-            
-            shutil.rmtree(Config.IMAGES_CACHE_DIR)
-            logger.info("Cached imaged cleaned")
+                    
+            if os.path.exists(Config.IMAGES_CACHE_DIR):
+                shutil.rmtree(Config.IMAGES_CACHE_DIR)
+                logger.info("Cached imaged cleaned")
             
             if hasattr(self, 'font'):
                 sdl2.sdlttf.TTF_CloseFont(self.font)
