@@ -4,6 +4,8 @@ export PYSDL2_DLL_PATH="/usr/lib/"
 APP_DIR=$(dirname "$0")
 cd $APP_DIR
 
+chmod -R $APP_DIR 
+
 python -B ./scripts/main_updater.py
 if [ $? -eq 1 ]; then
     exit 1
