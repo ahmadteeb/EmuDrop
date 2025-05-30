@@ -15,7 +15,7 @@ def get_local_version():
     try:
         with open(VERSION_FILE, 'r') as f:
             lines = f.readlines()
-            if len(lines) >= 2:
+            if len(lines) >= 2 and Path(f'assets/{DB_FILE_NAME}').exists:
                 version = lines[1].strip()
                 return version if version else "v0.0.0"
             return "v0.0.0"
