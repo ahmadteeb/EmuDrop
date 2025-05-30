@@ -1,10 +1,6 @@
 [
     {
-        "id": "COLECO",
-        "page": "/roms/colecovision/"
-    },
-    {
-        "id": "CPC",
-        "page": "/roms/amstrad-cpc/"
+        "id": "CPS3",
+        "page": "/roms/capcom-play-system-3/"
     }
 ]
