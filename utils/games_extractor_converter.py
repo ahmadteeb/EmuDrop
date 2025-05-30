@@ -3,6 +3,7 @@ import subprocess
 from utils.logger import logger
 from utils.config import Config
 import shutil
+import re
 
 class GamesExtractorConverter:
     def __init__(self, status, game_prop, download_path) -> None:
@@ -35,12 +36,20 @@ class GamesExtractorConverter:
             
         self.status['current_operation'] = operation_name
         try:
+            shell = False
+            # if windows remove ./ and set shell to True
+            if os.name == 'nt':
+                cmd[0] = cmd[0].replace('./', '')
+                shell = True
+                
             process = subprocess.Popen(
                 cmd,
+                cwd=os.environ['EXECUTABLES_DIR'],
                 start_new_session=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                universal_newlines=True
+                universal_newlines=True,
+                shell=shell
             )
             self.process = process
             
@@ -79,6 +88,24 @@ class GamesExtractorConverter:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait()
+    
+    def _trim_file_name(self, input_file):
+        # Step 1: Remove extensions (only actual file extensions at the end)
+        # This removes things like .img.iso.zip etc
+        file_name = re.sub(r'(\.[a-zA-Z0-9]+)+$', '', input_file)
+
+        # Step 2: Remove unwanted substrings
+        for remove in ['nkit', '!', '&', 'Disc ', 'Rev ', 'Rom']:
+            file_name = file_name.replace(remove, '')
+
+        # Step 3: Remove content inside parentheses and brackets
+        file_name = re.sub(r'\([^)]*\)', '', file_name)
+        file_name = re.sub(r'\[[^\]]*\]', '', file_name)
+
+        # Step 4: Normalize spacing and trim dots/spaces
+        file_name = re.sub(r'\s+', ' ', file_name)  # collapse multiple spaces
+        file_name = file_name.strip().rstrip('.').strip()
+        return file_name
         
     def move_game(self):
         files_path, files = self.scan_folder(self.download_path)
@@ -87,42 +114,39 @@ class GamesExtractorConverter:
 
         game_names_to_scrape = []
         valid_files = [f for f in files if not f.endswith(('.nfo', '.html', '.htm'))]
-
-        def clean_stem(filename):
-            return os.path.splitext(os.path.splitext(filename)[0])[0]
-
+           
         def _normal_game_out():
             rename = len(valid_files) == 1
             for file in valid_files:
-                game_name = clean_stem(file)
+                game_name = self._trim_file_name(file)
                 
                 # temp commented
                 # if rename and self.canBeRenamed:
                 #     game_name = os.path.splitext(self.game_name)[0]
                 
-                ext = os.path.splitext(file)[1]
+                _, ext = os.path.splitext(file)
                 dest_file = f"{game_name}{ext}"
                 os.replace(os.path.join(files_path, file), os.path.join(output_path, dest_file))
                 game_names_to_scrape.append(dest_file)
 
         def _convert_file(input_file, converter_type):
-            game_name = clean_stem(input_file)
+            game_name = self._trim_file_name(input_file)
             
             conversion_commands = {
                 'chd': [
-                    f"{os.environ['EXECUTABLES_DIR']}/chdman",
+                    "./chdman",
                     "createcd",
                     "-i", os.path.join(files_path, input_file),
                     "-o", os.path.join(output_path, f"{game_name}.chd"),
                     "-c", "zlib"
                 ],
                 'cue': [
-                    f"{os.environ['EXECUTABLES_DIR']}/ccd2cue",
+                    "./ccd2cue",
                     os.path.join(files_path, input_file),
                     "-o", os.path.join(files_path, f"{game_name}.cue")
                 ],
                 'bin': [
-                    f"{os.environ['EXECUTABLES_DIR']}/ecm2bin",
+                    "./ecm2bin",
                     os.path.join(files_path, input_file),
                     os.path.join(files_path, f"{game_name}.bin")
                 ]
@@ -140,7 +164,7 @@ class GamesExtractorConverter:
                     raise RuntimeError(result)
                     
                 if converter_type == 'chd':
-                    game_names_to_scrape.append(game_name)
+                    game_names_to_scrape.append(f"{game_name}.chd")
                     logger.info(f"File {input_file} has been converted to CHD successfully")
 
         # Platforms requiring CHD conversion
@@ -148,13 +172,15 @@ class GamesExtractorConverter:
         if self.platform_id in to_chd_platforms:
             # Group files by extension for batch processing
             file_groups = {
-                'ccd': [f for f in files if f.lower().endswith('.ccd')],
-                'ecm': [f for f in files if f.lower().endswith('.ecm')],
+                'bin': [f for f in files if f.lower().endswith('.bin')],
                 'img': [f for f in files if f.lower().endswith('.img')],
+                'ecm': [f for f in files if f.lower().endswith('.ecm')],
+                'ccd': [f for f in files if f.lower().endswith('.ccd')],
                 'cue': [f for f in files if f.lower().endswith('.cue')],
             }
             
             # Process each group of files
+            print(file_groups.items())
             for ext, conv_files in file_groups.items():
                 for file in conv_files:
                     if ext == 'ccd':
@@ -162,19 +188,21 @@ class GamesExtractorConverter:
                     elif ext == 'ecm':
                         _convert_file(file, 'bin')
                     elif ext == 'cue':
-                        file_path = os.path.join(files_path, file)
-                        with open(file_path, 'r') as f:
+                        input_file_path = os.path.join(files_path, file)
+                        output_file_path = os.path.join(files_path, f"{self._trim_file_name(file)}.cue")
+                        with open(input_file_path, 'r') as f:
                             content = f.readlines()
                         
                         bin_name_line = content[0].split('"')
-                        bin_name_line[1] = f"{clean_stem(file)}.bin"
+                        bin_name_line[1] = f"{self._trim_file_name(file)}.bin"
                         content[0] = '"'.join(bin_name_line)
                         
-                        with open(file_path, 'w') as f:
+                        with open(output_file_path, 'w') as f:
                             f.writelines(content)
+                        os.remove(input_file_path)
                             
-                    elif ext == 'img':
-                        new_file_name = f"{clean_stem(file)}.bin"
+                    elif ext in ['bin', 'img']:
+                        new_file_name = f"{self._trim_file_name(file)}.bin"
                         shutil.copyfile(os.path.join(files_path, file), os.path.join(files_path, new_file_name))
                         
             # Convert all intermediate files to CHD
@@ -199,7 +227,7 @@ class GamesExtractorConverter:
                     os.path.join(output_path, file),
                     os.path.join(self.rom_path, file)
                 )
-                
+        print(list(set(game_names_to_scrape)))
         return list(set(game_names_to_scrape))
                 
     def scan_folder(self, subfolder):
@@ -245,7 +273,7 @@ class GamesExtractorConverter:
         logger.info(f"Extracting {file}...")
         
         success, result = self._run_command(
-            [f"{os.environ['EXECUTABLES_DIR']}/7z", "x", file, f'-o{str(extract_to)}'],
+            ["./7z", "x", file, f'-o{str(extract_to)}'],
             "Extracting"
         )
         
@@ -256,4 +284,3 @@ class GamesExtractorConverter:
         
         os.remove(file)
         logger.info(f"File {file} has been extracted successfully")
-        

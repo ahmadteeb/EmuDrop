@@ -53,17 +53,24 @@ class ScreenScraper:
                 md5.update(chunk)
         return md5.hexdigest()
     
-    def _trim_file_name(self, file_name_no_ext):
-        # Clean up name
-        trimed_file_name = file_name_no_ext
+    def _trim_file_name(self, input_file):
+        # Step 1: Remove extensions (only actual file extensions at the end)
+        # This removes things like .img.iso.zip etc
+        file_name = re.sub(r'(\.[a-zA-Z0-9]+)+$', '', input_file)
+
+        # Step 2: Remove unwanted substrings
         for remove in ['nkit', '!', '&', 'Disc ', 'Rev ', 'Rom']:
-            trimed_file_name = trimed_file_name.replace(remove, '')
-        
-        # Remove content in parentheses and brackets
-        trimed_file_name = re.sub(r'\([^)]*\)', '', trimed_file_name)
-        trimed_file_name = re.sub(r'\[[^\]]*\]', '', trimed_file_name)
-        trimed_file_name = trimed_file_name.replace(' - ', '%20').replace('-', '%20').replace(' ', '%20')
-        return trimed_file_name
+            file_name = file_name.replace(remove, '')
+
+        # Step 3: Remove content inside parentheses and brackets
+        file_name = re.sub(r'\([^)]*\)', '', file_name)
+        file_name = re.sub(r'\[[^\]]*\]', '', file_name)
+
+        # Step 4: Normalize spacing and trim dots/spaces
+        file_name = re.sub(r'\s+', ' ', file_name)  # collapse multiple spaces
+        file_name = file_name.strip().rstrip('.').strip()
+        file_name = file_name.replace(' - ', '%20').replace('-', '%20').replace(' ', '%20')
+        return file_name
     
     def _get_system_id(self, system: str) -> str:
             """Get ScreenScraper system ID"""
@@ -231,14 +238,14 @@ class ScreenScraper:
             return "Already scraped"
         
         try:
-            logger.info("Trying to scrape by hashing the file")
-            file_path = os.path.join(os.environ['ROMS_DIR'], Config.SYSTEMS_MAPPING[system], file_name)
-            media_url = self._scrape_using_file_hash(file_path, system)
+            logger.info("Trying to scrape using file name")
+            trimed_file_name = self._trim_file_name(file_name)
+            media_url = self._scrape_using_file_name(trimed_file_name, system)
             
             if not media_url:
-                logger.info("Trying to scrape using file name")
-                trimed_file_name = self._trim_file_name(file_name_no_ext)
-                media_url = self._scrape_using_file_name(trimed_file_name, system)
+                logger.info("Trying to scrape by hashing the file")
+                file_path = os.path.join(os.environ['ROMS_DIR'], Config.SYSTEMS_MAPPING[system], file_name)
+                media_url = self._scrape_using_file_hash(file_path, system)
             
             if not media_url:
                 raise
