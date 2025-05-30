@@ -18,14 +18,17 @@ def extract_games(page_url):
             print(f"Extracting data from {game_name}")
             game_url = game.find('a').get('href') + "download"
             image_url = game.find('img').get('data-src')
-                
+            
+            if image_url == "https://hexrom.com/images/icon/n/nocover.jpg" or image_url.startswith(('https://', 'http://')):
+                image_url = None
+            
             game_request = session.get(game_url)
             game_soup = BeautifulSoup(game_request.text, 'html.parser')
         
             download_url = game_soup.find('a', attrs={'class': "dlbi"}).get('href')
             games.append({
             'name': game_name.lstrip().rstrip(),
-            'image_url': image_url if image_url.startswith(('https://', 'http://')) else 'default_image.png',
+            'image_url': image_url,
             'game_url': download_url
         })
         except AttributeError:
@@ -38,9 +41,13 @@ def extract_pages(platform_url):
     soup = BeautifulSoup(platform_request.text, 'html.parser')
     pages = None
     try:
-        pages = int(soup.find_all('a', attrs={'class': "page-numbers"})[-2].text)
-    except IndexError:
+        page_request = session.get(f"{base_url}{platform_url}/page/2")
+        page_soup = BeautifulSoup(page_request.text, 'html.parser')
+        h1 = page_soup.find('h1', string=lambda text: text and 'download rom' in text.lower()).text
+        pages = int(h1.split(' | ')[1].split(' of ')[-1])
+    except:
         pages = 1
+        
     print(f"Extracting games from {platform_url}")
     print(f"{pages} Pages to be extracted")
     games = []

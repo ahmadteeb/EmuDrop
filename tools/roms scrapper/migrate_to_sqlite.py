@@ -181,6 +181,20 @@ def main():
         print(f"Platforms: {platforms_count}")
         print(f"Sources: {sources_count}")
         print(f"Games: {games_count}")
+        
+        # Print games count per platform
+        print("\nGames per Platform:")
+        cursor.execute('''
+            SELECT p.name, COUNT(g.id) as game_count 
+            FROM platforms p 
+            LEFT JOIN games g ON p.id = g.platform_id 
+            GROUP BY p.id 
+            ORDER BY game_count DESC
+        ''')
+        
+        for platform_name, count in cursor.fetchall():
+            if count:
+                print(f"{platform_name}: {count}")
 
     except Exception as e:
         print(f"An error occurred: {e}")

@@ -218,7 +218,7 @@ class GamesView(BaseView):
                 )
                 
                 # Only render the game image if the hold timer has elapsed
-                if show_image and 'image_url' in selected_game_data and selected_game_data['image_url']:
+                if show_image and 'image_url' in selected_game_data:
                     texture = self.get_texture(selected_game_data['image_url'])
                     if texture:
                         image_rect = sdl2.SDL_Rect(

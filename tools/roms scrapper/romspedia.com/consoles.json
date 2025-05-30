@@ -1,6 +1,10 @@
 [
     {
-        "id": "SATURN",
-        "page": "/roms/sega-saturn/"
+        "id": "COLECO",
+        "page": "/roms/colecovision/"
+    },
+    {
+        "id": "CPC",
+        "page": "/roms/amstrad-cpc/"
     }
 ]

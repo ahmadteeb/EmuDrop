@@ -1,6 +1,10 @@
 [
     {
-        "id": "C64",
-        "page": "/roms/commodore-64/"
+        "id": "COLECO",
+        "page": "/roms/colecovision/"
+    },
+    {
+        "id": "CPC",
+        "page": "/roms/amstrad-cpc/"
     }
 ]

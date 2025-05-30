@@ -24,7 +24,7 @@ def extract_games(page_url):
             download_url = game_soup.find('a', string="click here").get('href')
             games.append({
             'name': game_name.lstrip().rstrip(),
-            'image_url': image_url if image_url.startswith(('https://', 'https://')) else 'default_image.png',
+            'image_url': image_url if image_url.startswith(('https://', 'https://')) else None,
             'game_url': f"{download_url}",
         })
         except AttributeError:

@@ -19,6 +19,7 @@ def extract_games(page_url):
         image_url = game.find('img').get('src')
         if image_url is None:
             image_url = game.find('img').get('data-src')
+            
         game_request = session.get(f"{base_url}{game_url}")
         game_soup = BeautifulSoup(game_request.text, 'html.parser')
         download_request_url = game_soup.find('a', attrs={'id': "btnDownload"}).get('href')
@@ -28,7 +29,7 @@ def extract_games(page_url):
 
         games.append({
             'name': game_name.lstrip().rstrip(),
-            'image_url': image_url if image_url.startswith(('https://', 'http://')) else 'default_image.png',
+            'image_url': image_url if image_url.startswith(('https://', 'http://')) else None,
             'game_url': download_url
         })
 

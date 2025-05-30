@@ -261,7 +261,7 @@ class ScreenScraper:
         
         except Exception as e:
             logger.warning(f"Somthing went wrong while scraping from scrapper: {e}")
-            image_path = ImageCache.download_image(image_url)
+            image_path = ImageCache.download_image(image_url) if image_url else Config.DEFAULT_IMAGE_PATH
             shutil.copy(image_path, target_image)
             return "Successfully scraped from cache"
         

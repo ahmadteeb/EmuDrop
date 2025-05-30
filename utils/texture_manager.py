@@ -34,6 +34,10 @@ class TextureManager:
         :param image_path_or_url: Path or URL of the image
         :return: SDL texture or None if loading fails
         """
+        # If image_path_or_url is None, use default image
+        if image_path_or_url is None:
+            return self._load_texture_from_path(Config.DEFAULT_IMAGE_PATH, "default_image")
+            
         # Update last used timestamp for cache management
         current_time = sdl2.SDL_GetTicks()
         
@@ -70,7 +74,7 @@ class TextureManager:
                 self.download_thread.start()
             return None
         
-        elif image_path_or_url:
+        else:
             # Load local textures
             image_path = os.path.join(Config.IMAGES_CONSOLES_DIR, image_path_or_url)
             return self._load_texture_from_path(image_path, image_path_or_url)

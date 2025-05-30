@@ -180,7 +180,6 @@ class GamesExtractorConverter:
             }
             
             # Process each group of files
-            print(file_groups.items())
             for ext, conv_files in file_groups.items():
                 for file in conv_files:
                     if ext == 'ccd':
@@ -227,7 +226,6 @@ class GamesExtractorConverter:
                     os.path.join(output_path, file),
                     os.path.join(self.rom_path, file)
                 )
-        print(list(set(game_names_to_scrape)))
         return list(set(game_names_to_scrape))
                 
     def scan_folder(self, subfolder):
