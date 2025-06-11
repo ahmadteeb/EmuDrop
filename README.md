@@ -115,7 +115,7 @@ If you like this project, consider supporting me on Buymeacoffee:
     - https://github.com/ahmadteeb/EmuDrop/releases
 2. Extract the downloaded file to:
     - Stock/Crossmix OS -> /mnt/SDCARD/Apps/
-    - Knulli OS -> /userdata/roms/tools/
+    - Knulli OS -> /userdata/roms/pygame/
 ## Requirements
 
 - Python 3.6+

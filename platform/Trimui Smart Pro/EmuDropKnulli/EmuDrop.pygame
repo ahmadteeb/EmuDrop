@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Set PYSDL2_DLL_PATH
+os.environ['PYSDL2_DLL_PATH'] = "/usr/lib/"
+
+# Change to the directory where this script resides
+app_dir = Path(__file__).resolve().parent
+os.chdir(app_dir)
+
+# Make everything in the directory readable, writable, and executable
+for root, dirs, files in os.walk(app_dir):
+    for d in dirs:
+        os.chmod(os.path.join(root, d), 0o777)
+    for f in files:
+        os.chmod(os.path.join(root, f), 0o777)
+
+# Run the updater script
+result = subprocess.run(
+    [sys.executable, "-B", "./scripts/main_updater.py"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE
+)
+
+# If updater exits with code 1, exit the script
+if result.returncode == 1:
+    sys.exit(1)
+
+# Set additional environment variables
+os.environ["ROMS_DIR"] = "/userdata/roms/"
+os.environ["IMGS_DIR"] = "/userdata/roms/{SYSTEM}/images/{IMAGE_NAME}-image.png"
+os.environ["EXECUTABLES_DIR"] = str(app_dir / "assets" / "executables")
+
+# Execute the binary
+subprocess.run(["./EmuDrop"])

@@ -90,21 +90,8 @@ class GamesExtractorConverter:
                 self.process.wait()
     
     def _trim_file_name(self, input_file):
-        # Step 1: Remove extensions (only actual file extensions at the end)
         # This removes things like .img.iso.zip etc
         file_name = re.sub(r'(\.[a-zA-Z0-9]+)+$', '', input_file)
-
-        # Step 2: Remove unwanted substrings
-        for remove in ['nkit', '!', '&', 'Disc ', 'Rev ', 'Rom']:
-            file_name = file_name.replace(remove, '')
-
-        # Step 3: Remove content inside parentheses and brackets
-        file_name = re.sub(r'\([^)]*\)', '', file_name)
-        file_name = re.sub(r'\[[^\]]*\]', '', file_name)
-
-        # Step 4: Normalize spacing and trim dots/spaces
-        file_name = re.sub(r'\s+', ' ', file_name)  # collapse multiple spaces
-        file_name = file_name.strip().rstrip('.').strip()
         return file_name
         
     def move_game(self):
@@ -196,13 +183,15 @@ class GamesExtractorConverter:
                         bin_name_line[1] = f"{self._trim_file_name(file)}.bin"
                         content[0] = '"'.join(bin_name_line)
                         
+                        os.remove(input_file_path)
                         with open(output_file_path, 'w') as f:
                             f.writelines(content)
-                        os.remove(input_file_path)
                             
                     elif ext in ['bin', 'img']:
                         new_file_name = f"{self._trim_file_name(file)}.bin"
-                        shutil.copyfile(os.path.join(files_path, file), os.path.join(files_path, new_file_name))
+                        if not os.path.exists(os.path.join(files_path, new_file_name)):
+                            shutil.copyfile(os.path.join(files_path, file), os.path.join(files_path, new_file_name))
+    
                         
             # Convert all intermediate files to CHD
             intermediate_files = [f for f in os.listdir(files_path) 
