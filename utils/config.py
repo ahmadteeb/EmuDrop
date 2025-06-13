@@ -136,7 +136,7 @@ class Config:
     
     # Loading button mapping
     with open(os.path.join(ASSETS_DIR, 'settings.json'), 'r') as f:
-        buttons = json.loads(f.read())['buttonMapping']
+        buttons = json.loads(f.read())['keyMapping']
         # Controller button mapping
         CONTROLLER_BUTTON_A = buttons['CONTROLLER_BUTTON_A']      
         CONTROLLER_BUTTON_B = buttons['CONTROLLER_BUTTON_B']     

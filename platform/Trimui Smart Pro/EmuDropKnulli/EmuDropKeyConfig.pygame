@@ -1,0 +1,11 @@
+import os
+from scripts.joystick_mapper import JoystickMapper
+from pathlib import Path
+
+# Change to the directory where this script resides
+app_dir = Path(__file__).resolve().parent
+os.chdir(app_dir)
+
+settings_path = os.path.join(app_dir, 'assets', 'settings.json')
+joyStickMapper = JoystickMapper(settings_path=settings_path)
+joyStickMapper.run()

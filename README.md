@@ -116,6 +116,7 @@ If you like this project, consider supporting me on Buymeacoffee:
 2. Extract the downloaded file to:
     - Stock/Crossmix OS -> /mnt/SDCARD/Apps/
     - Knulli OS -> /userdata/roms/pygame/
+    Note: Run EmuDropKeyConfig from pygame menu to reconfig the keyMaping.
 ## Requirements
 
 - Python 3.6+

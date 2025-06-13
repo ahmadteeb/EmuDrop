@@ -1,13 +1,9 @@
-import urllib3
 import pygame
 import sys
-from pathlib import Path
 
 # Initialize Pygame
 pygame.init()
 pygame.joystick.init()  # Initialize joystick module
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Screen settings
 SCREEN_WIDTH = pygame.display.Info().current_w
@@ -85,7 +81,7 @@ class InfoScreen:
                             pygame.quit()
                             sys.exit()
                     elif event.type == pygame.JOYBUTTONDOWN:
-                        if event.button == wait_for_button:
+                        if event.button == wait_for_button or wait_for_button == "any":
                             waiting = False
                             return
                         

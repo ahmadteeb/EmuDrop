@@ -189,8 +189,8 @@ class GamesExtractorConverter:
                             
                     elif ext in ['bin', 'img']:
                         new_file_name = f"{self._trim_file_name(file)}.bin"
-                        if not os.path.exists(os.path.join(files_path, new_file_name)):
-                            shutil.copyfile(os.path.join(files_path, file), os.path.join(files_path, new_file_name))
+                        os.rename(os.path.join(files_path, file), os.path.join(files_path, 'temp.bin'))
+                        os.rename(os.path.join(files_path, 'temp.bin'), os.path.join(files_path, new_file_name))
     
                         
             # Convert all intermediate files to CHD

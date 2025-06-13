@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
 import os
 import subprocess
 import sys
 from pathlib import Path
+import json
+from scripts.joystick_mapper import JoystickMapper
 
 # Set PYSDL2_DLL_PATH
 os.environ['PYSDL2_DLL_PATH'] = "/usr/lib/"
@@ -29,10 +30,19 @@ result = subprocess.run(
 if result.returncode == 1:
     sys.exit(1)
 
+# Configure Key Mapping if not exists
+settings_path = os.path.join(app_dir, 'assets', 'settings.json')
+with open(settings_path, 'r') as f:
+    settings = json.loads(f.read())
+
+if settings['keyMapping'] == {}:
+    joyStickMapper = JoystickMapper(settings_path=settings_path)
+    joyStickMapper.run()
+
 # Set additional environment variables
 os.environ["ROMS_DIR"] = "/userdata/roms/"
 os.environ["IMGS_DIR"] = "/userdata/roms/{SYSTEM}/images/{IMAGE_NAME}-image.png"
-os.environ["EXECUTABLES_DIR"] = str(app_dir / "assets" / "executables")
+os.environ["EXECUTABLES_DIR"] = os.path.join(app_dir, "assets", "executables")
 
 # Execute the binary
 subprocess.run(["./EmuDrop"])

@@ -10,7 +10,7 @@
         "SCRAPER_API_USERSSID": "",
         "SCRAPER_API_SSPASS":""
     },
-    "buttonMapping": {
+    "keyMapping": {
         "CONTROLLER_BUTTON_A": 1,     
         "CONTROLLER_BUTTON_B": 0,     
         "CONTROLLER_BUTTON_X": 3,     
