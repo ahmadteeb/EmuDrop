@@ -4,7 +4,7 @@ cd $APP_DIR
 
 chmod -R 777 .
 
-export PYSDL2_DLL_PATH="/usr/lib/"
+export PYSDL2_DLL_PATH="/usr/trimui/lib/"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mnt/SDCARD/System/lib/
 export INFOSCREEN="/mnt/SDCARD/System/usr/trimui/scripts/infoscreen.sh"
 
