@@ -6,9 +6,7 @@ A modern, user-friendly game ROM downloader application mainly for Trimui Smart 
 If you like this project, consider supporting me on Buy Me a Coffee:
 
 <p align="center">
-  <a href="https://buymeacoffee.com/ahmadteeb" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-dark.png" alt="Buy Me A Coffee" width="200" />
-  </a>
+  <a href="https://www.buymeacoffee.com/ahmadteeb"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=ahmadteeb&button_colour=373434&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" /></a>
 </p>
 
 ## 🎮 Devices Support
