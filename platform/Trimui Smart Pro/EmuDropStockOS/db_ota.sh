@@ -14,7 +14,7 @@ DB_FILE_NAME="catalog.db"
 
 # Function to get the local version
 get_local_version() {
-    if [[ -f "$VERSION_FILE" && -f "assets/$DB_FILE_NAME"]]; then
+    if [[ -f "$VERSION_FILE" && -f "assets/$DB_FILE_NAME" ]]; then
         sed -n '2p' "$VERSION_FILE" | tr -d '[:space:]'
     else
         echo "v0.0.0" # Default version if the file does not exist

@@ -58,13 +58,17 @@ def get_or_build_source_id(cursor, source_name):
     return cursor.lastrowid
 
 def migrate_platforms(cursor, platforms_data):
-    # Insert platforms
+    # Insert platforms (INSERT OR IGNORE ensures existing platforms are not duplicated)
+    added_count = 0
     for platform in platforms_data:
         cursor.execute('''
         INSERT OR IGNORE INTO platforms (id, name, image, isExtractable, canBeRenamed)
         VALUES (?, ?, ?, ?, ?)
         ''', (platform['id'], platform['name'], platform['image'], 
               platform.get('isExtractable', False), platform.get('canBeRenamed', False)))
+        if cursor.rowcount > 0:
+            added_count += 1
+    return added_count
 
 def migrate_games(cursor, json_data):
     # Process sources and games for each platform
@@ -148,15 +152,13 @@ def main():
         # Create tables
         create_tables(cursor)
         
-        # Check if database is empty (new database)
-        is_new_database = is_database_empty(cursor)
-        
-        if is_new_database:
-            # Migrate platforms only for new database
-            migrate_platforms(cursor, platforms_data)
-            print("Platforms migrated successfully!")
+        # Always migrate platforms (INSERT OR IGNORE ensures existing platforms are not duplicated)
+        # This allows new platforms to be added to existing databases
+        platforms_added = migrate_platforms(cursor, platforms_data)
+        if platforms_added > 0:
+            print(f"Platforms updated: {platforms_added} new platform(s) added!")
         else:
-            print("Using existing platforms in database")
+            print("Platforms checked: all platforms already exist in database")
         
         # Always migrate games
         migrate_games(cursor, catalog_data)
@@ -197,7 +199,9 @@ def main():
                 print(f"{platform_name}: {count}")
 
     except Exception as e:
+        import traceback
         print(f"An error occurred: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         conn.rollback()
     finally:
         conn.close()

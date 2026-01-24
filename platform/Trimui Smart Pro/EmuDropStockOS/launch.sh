@@ -4,10 +4,8 @@ cd $APP_DIR
 
 chmod -R 777 .
 
-export PYSDL2_DLL_PATH="/usr/trimui/lib/"
+export PYSDL2_DLL_PATH="/usr/lib/"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mnt/SDCARD/System/lib/
-
-$INFOSCREEN -m "Checking internet connection..." -t 0.2
 
 if ping -c 1 8.8.8.8 > /dev/null 2>&1; then
     echo "Internet connection detected."
