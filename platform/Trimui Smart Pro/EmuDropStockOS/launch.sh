@@ -25,5 +25,5 @@ export ROMS_DIR="/mnt/SDCARD/Roms/"
 export IMGS_DIR="/mnt/SDCARD/Imgs/{SYSTEM}/{IMAGE_NAME}.png"
 export EXECUTABLES_DIR="$APP_DIR/assets/executables/"
 
-./EmuDrop
+"$APP_DIR/EmuDrop"
 rm /tmp/stay_awake
