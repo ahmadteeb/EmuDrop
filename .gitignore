@@ -8,3 +8,6 @@ assets/images/cache/*
 EmuDrop.log
 catalog.db
 temp
+build/
+dist/
+*.spec

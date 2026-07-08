@@ -30,6 +30,7 @@ If you like this project, consider supporting me on Buy Me a Coffee:
     <tr><td>RG35XX-H</td><td><code>Knulli</code></td></tr>
     <tr><td>RG35XX-V</td><td><code>Knulli</code></td></tr>
     <tr><td>RG-CubeXX</td><td><code>Knulli</code></td></tr>
+    <tr><td>Powkiddy RGB30</td><td><code>ROCKNIX</code></td></tr>
   </tbody>
 </table>
 
@@ -113,6 +114,7 @@ If you like this project, consider supporting me on Buy Me a Coffee:
 2. Extract the downloaded file to:
     - Stock/Crossmix OS -> /mnt/SDCARD/Apps/
     - Knulli OS -> /userdata/roms/pygame/
+    - ROCKNIX OS -> /storage/roms/ports/
     Note: Run EmuDropKeyConfig from pygame menu to reconfig the key mapping.
 ## Requirements
 
