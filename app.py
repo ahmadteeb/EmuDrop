@@ -115,6 +115,8 @@ class GameDownloaderApp:
             self.search_text: str = ""
             self.selected_download: Optional[str] = None  # Track selected download in download view
             self.scroll_offset: int = 0  # Track scroll position in download view
+            self.needs_redraw: bool = True
+            self.last_download_redraw: int = 0
             
             self.database = Database()
             
@@ -202,19 +204,19 @@ class GameDownloaderApp:
         return window
 
     def _create_renderer(self) -> sdl2.SDL_Renderer:
-        """Create the SDL renderer, attempting software rendering first."""
+        """Create the SDL renderer, attempting hardware rendering first."""
         with self._sdl_error_context("Renderer creation"):
-            # Try software renderer first (better for low-power devices)
-            renderer_flags = sdl2.SDL_RENDERER_SOFTWARE | sdl2.SDL_RENDERER_PRESENTVSYNC
+            # Try hardware renderer first (better for low-power devices)
+            renderer_flags = sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC
             renderer = sdl2.SDL_CreateRenderer(self.window, -1, renderer_flags)
             
             if not renderer:
-                # Log warning and try hardware acceleration as fallback
-                logger.warning("Software renderer failed, attempting hardware acceleration")
+                # Log warning and try software acceleration as fallback
+                logger.warning("Hardware renderer failed, attempting software acceleration")
                 renderer = sdl2.SDL_CreateRenderer(
                     self.window, 
                     -1,
-                    sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC
+                    sdl2.SDL_RENDERER_SOFTWARE | sdl2.SDL_RENDERER_PRESENTVSYNC
                 )
             
             if not renderer:
@@ -222,7 +224,13 @@ class GameDownloaderApp:
                 
             renderer_info = sdl2.SDL_RendererInfo()
             sdl2.SDL_GetRendererInfo(renderer, ctypes.byref(renderer_info))
+            is_hw_accelerated = (renderer_info.flags & sdl2.SDL_RENDERER_ACCELERATED) != 0
+
             logger.info(f"Created renderer: {renderer_info.name.decode('utf-8')}")
+            if is_hw_accelerated:
+                print(f"Using Hardware Renderer: {renderer_info.name.decode('utf-8')}")
+            else:
+                print("Using Software Renderer")
             
             return renderer
 
@@ -317,14 +325,18 @@ class GameDownloaderApp:
                     # Update game state
                     if self.view_state.mode == 'games':
                         self._update_game_image_timer(delta_time)
+                        if self.is_image_loaded and self.texture_manager.consume_download_completion():
+                            self.needs_redraw = True
                     
                     # Update downloads
                     self._update_downloads()
                     
-                    # Render frame
-                    self._render()
+                    # Render only when state has changed
+                    if self.needs_redraw:
+                        self._render()
+                        self.needs_redraw = False
                     
-                    # Cap frame rate
+                    # Cap frame rate (keeps loop responsive for async state changes)
                     frame_time = sdl2.SDL_GetTicks() - current_time
                     if frame_time < Config.FRAME_TIME:
                         sdl2.SDL_Delay(Config.FRAME_TIME - frame_time)
@@ -347,7 +359,9 @@ class GameDownloaderApp:
             bool: False if application should exit, True otherwise.
         """
         event = sdl2.SDL_Event()
+        had_event = False
         while sdl2.SDL_PollEvent(ctypes.byref(event)) != 0:
+            had_event = True
             if event.type == sdl2.SDL_QUIT:
                 return False
             elif event.type == sdl2.SDL_WINDOWEVENT:
@@ -376,13 +390,17 @@ class GameDownloaderApp:
                 if not self._handle_controller_button(button):
                     return False
                 self.held_joy_buttons[button] = now
+                had_event = True
                 
         if self.held_hat_button != sdl2.SDL_HAT_CENTERED:
                 if now - self.last_hat_time >= Config.CONTROLLER_BUTTON_REPEAT_RATE / 1000.0:
                     if not self._handle_d_pad_controller_button(self.held_hat_button):
                         return False
                     self.last_hat_time = now
+                    had_event = True
         
+        if had_event:
+            self.needs_redraw = True
         return True
     
     def _handle_window_event(self, event) -> None:
@@ -400,6 +418,7 @@ class GameDownloaderApp:
         try:
             completed_downloads = []
             active_download_count = DownloadManager.get_active_download_count()
+            state_changed = False
             
             # First pass: identify completed downloads
             for game_name, download_info in self.downloads.items():
@@ -409,6 +428,7 @@ class GameDownloaderApp:
                 manager = download_info['manager']
                 if manager.status["state"] == "completed":
                     completed_downloads.append(game_name)
+                    state_changed = True
                     
             # Second pass: update queue positions and start queued downloads if possible
             queued_downloads = sorted(
@@ -428,6 +448,7 @@ class GameDownloaderApp:
                 if manager.status["state"] == "queued":
                     manager.start_download()
                     active_download_count += 1
+                    state_changed = True
                     logger.info(f"Starting queued download: {game_name}")
                     
             # Remove completed downloads
@@ -442,6 +463,16 @@ class GameDownloaderApp:
                     else:
                         self.selected_download = None
                         self.scroll_offset = 0
+            
+            # Periodic redraw for active download progress (every 500ms)
+            if active_download_count > 0:
+                now = sdl2.SDL_GetTicks()
+                if now - self.last_download_redraw >= 500:
+                    state_changed = True
+                    self.last_download_redraw = now
+            
+            if state_changed:
+                self.needs_redraw = True
                         
         except Exception as e:
             logger.error(f"Error updating downloads: {str(e)}", exc_info=True)
@@ -475,11 +506,13 @@ class GameDownloaderApp:
             self.game_hold_timer = 0
             self.is_image_loaded = False
             self.last_selected_game = self.nav_state.selected_game
+            self.needs_redraw = True
         else:
             # Increment timer while on the same game
             self.game_hold_timer += delta_time
             if self.game_hold_timer >= Config.IMAGE_LOAD_DELAY and not self.is_image_loaded:
                 self.is_image_loaded = True
+                self.needs_redraw = True
 
     def _handle_controller_button(self, button):
         # Map controller buttons to keyboard events
@@ -491,7 +524,11 @@ class GameDownloaderApp:
             Config.CONTROLLER_BUTTON_START: sdl2.SDLK_p,
             Config.CONTROLLER_BUTTON_Y: sdl2.SDLK_SPACE,
             Config.CONTROLLER_BUTTON_L: sdl2.SDLK_PAGEDOWN,
-            Config.CONTROLLER_BUTTON_R: sdl2.SDLK_PAGEUP
+            Config.CONTROLLER_BUTTON_R: sdl2.SDLK_PAGEUP,
+            Config.CONTROLLER_BUTTON_UP: sdl2.SDLK_UP,
+            Config.CONTROLLER_BUTTON_DOWN: sdl2.SDLK_DOWN,
+            Config.CONTROLLER_BUTTON_LEFT: sdl2.SDLK_LEFT,
+            Config.CONTROLLER_BUTTON_RIGHT: sdl2.SDLK_RIGHT
         }
         
         if button in button_map:
@@ -1190,7 +1227,7 @@ class GameDownloaderApp:
             total_space, free_space = DownloadManager.get_disk_space()
             
             # Format the information
-            size_text = f"Game Size: 'Geting Game Size..."
+            size_text = f"Game Size: 'Getting Game Size..."
             game_size_color = Theme.INFO
             if game_size == -1:
                 size_text = f"Game Size: Unknown"
@@ -1420,6 +1457,7 @@ class GameDownloaderApp:
             else:
                 self.game_to_download['size'] = -1
                 logger.warning("Failed to get game size or timed out")
+            self.needs_redraw = True
         
         update_thread = threading.Thread(target=update_size)
         update_thread.daemon = True
