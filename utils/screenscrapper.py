@@ -266,7 +266,7 @@ class ScreenScraper:
             return "Successfully scraped from cache"
         
         finally:
-            if Config.SYSTEMS_OS == "knulli":
+            if Config.SYSTEMS_OS in ("knulli", "rocknix"):
                 xml_path = os.path.join(os.environ['ROMS_DIR'], Config.SYSTEMS_MAPPING[system], 'gamelist.xml')
                 new_game_data = {
                     "path": f"./{file_name}",

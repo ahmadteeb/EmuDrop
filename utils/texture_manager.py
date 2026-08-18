@@ -26,6 +26,7 @@ class TextureManager:
         self.current_loading_texture = None  # Track the currently loading texture
         self.download_thread = None  # Thread for downloading images
         self.cached_image_path = None  # Path to the most recently downloaded image
+        self._download_completed = False  # Flag set when a download finishes
 
     def get_texture(self, image_path_or_url: str) -> Optional[sdl2.SDL_Texture]:
         """
@@ -86,14 +87,28 @@ class TextureManager:
             if cached_path:
                 # Store the cached path - texture will be loaded on next get_texture call
                 self.cached_image_path = cached_path
+                self._download_completed = True
             else:
                 # If download failed, reset states
                 self.current_loading_texture = None
                 self.cached_image_path = None
+                self._download_completed = True
         except Exception as e:
             logger.error(f"Error downloading image from URL {image_url}: {str(e)}")
             self.current_loading_texture = None
             self.cached_image_path = None
+            self._download_completed = True
+
+    def consume_download_completion(self) -> bool:
+        """Check and consume the download completion flag.
+        
+        Returns:
+            bool: True if a texture download completed since last check.
+        """
+        if self._download_completed:
+            self._download_completed = False
+            return True
+        return False
 
     def _load_texture_from_path(self, image_path: str, key: str) -> Optional[sdl2.SDL_Texture]:
         """Load a texture from a local file path"""

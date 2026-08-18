@@ -30,6 +30,7 @@ If you like this project, consider supporting me on Buy Me a Coffee:
     <tr><td>RG35XX-H</td><td><code>Knulli</code></td></tr>
     <tr><td>RG35XX-V</td><td><code>Knulli</code></td></tr>
     <tr><td>RG-CubeXX</td><td><code>Knulli</code></td></tr>
+    <tr><td>Powkiddy RGB30</td><td><code>ROCKNIX</code></td></tr>
   </tbody>
 </table>
 
@@ -113,6 +114,7 @@ If you like this project, consider supporting me on Buy Me a Coffee:
 2. Extract the downloaded file to:
     - Stock/Crossmix OS -> /mnt/SDCARD/Apps/
     - Knulli OS -> /userdata/roms/pygame/
+    - ROCKNIX OS -> /storage/roms/ports/
     Note: Run EmuDropKeyConfig from pygame menu to reconfig the key mapping.
 ## Requirements
 
@@ -122,27 +124,18 @@ If you like this project, consider supporting me on Buy Me a Coffee:
 
 ## Cross-Compiling
 
-1. Clone the repository:
 ```bash
-git clone [repository-url]
-cd EmuDrop
-```
+# Prerequisite: Register QEMU (one-time)
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-2. Using WSL2 run the docker container inside tools directory and place the code inside workspace:
-```bash
-sudo make shell
-```
+# Build a release for your device/OS
+make -C tools/toolchain release DEVICE="Powkiddy RGB30" TARGET_OS=ROCKNIX
+make -C tools/toolchain release DEVICE="Trimui Smart Pro" TARGET_OS=Knulli
+make -C tools/toolchain release DEVICE="Trimui Smart Pro" TARGET_OS=Crossmix
+make -C tools/toolchain release DEVICE="Trimui Smart Pro" TARGET_OS=StockOS
 
-3. Cross compiling the app to Trimui Smart Pro:
-```bash
-pyinstaller --onefile --noconsole --name EmuDrop main.py
+# See SETUP.md for device installation instructions.
 ```
-4. Place the EmuDrop files from dist/ directory platform/Trimui Smart Pro/EmuDrop
-```bash
-cp dist/EmuDrop/ platform/Trimui Smart Pro/EmuDrop
-```
-
-5. Copy EmuDrop directory to /mnt/SDCARD/Apps/
 
 ## Testing
 
@@ -172,8 +165,9 @@ python main.py
 - `ui/`: User interface components
 - `utils/`: Utility functions and helpers
 - `data/`: Data management and storage
-- `platform/`: Platform-specific implementations
-- `tools/toolchain`: Toolchain for Trimui Smart Pro using docker image
+- `device/`: Hardware-specific config (screen res, key mapping per device)
+- `os/`: OS-specific launchers, scripts, and structure
+- `tools/toolchain`: Cross-compilation toolchain using Docker
 - `tools/roms scrapper`: Scrapping the Game Roms links form https://www.consoleroms.com.
 - `assets/`: Images, fonts, and other resources
 
